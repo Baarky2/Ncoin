@@ -3,34 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
+    <!-- QRコード -->
     <div class="qr-section">
       <img id="qrImage" alt="QRコード">
       <h2>あなたのQRコード</h2>
     </div>
 
     <div class="main-content">
+      <!-- 左側メイン -->
       <div class="content">
-        <h1 id="welcome">ダッシュボード</h1>
-        <p>ここにメイン情報やボタンなどを配置します。</p>
+        <h1 id="welcome"></h1>
+        <h2>残高: <span id="balance">0</span> コイン</h2>
+
+        <!-- クエスト報酬 -->
+        <h2>クエスト報酬</h2>
+        <input type="number" id="questAmount" placeholder="獲得コイン">
+        <button id="questBtn">報酬を獲得</button>
+
+        <!-- 送金 -->
+        <h2>送金</h2>
+        <input type="text" id="sendTo" placeholder="送金先">
+        <input type="number" id="sendAmount" placeholder="金額">
+        <button id="sendBtn">送金</button>
+
+        <!-- QR送金ページへ -->
+        <div class="pay-section">
+          <button id="goPayBtn">QR送金ページへ</button>
+        </div>
+
+        <!-- 履歴 -->
+        <h2>送金 / クエスト履歴</h2>
+        <ul id="historyList"></ul>
       </div>
 
+      <!-- 右側ランキング -->
       <div class="ranking">
         <h2>ランキング</h2>
-        <ul id="rankingList">
-          <li>1位: Alice - 1200pt</li>
-          <li>2位: Bob - 950pt</li>
-          <li>3位: Carol - 820pt</li>
-        </ul>
+        <ol id="rankingList"></ol>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script>
     window.addEventListener("load", async () => {
       const socket = io();
@@ -43,7 +62,9 @@
 
       document.getElementById("welcome").textContent = `ようこそ ${nickname} さん`;
 
+      const balanceEl = document.getElementById("balance");
       const rankingEl = document.getElementById("rankingList");
+      const historyEl = document.getElementById("historyList");
 
       // ✅ QRコード生成
       try {
@@ -52,6 +73,13 @@
         document.getElementById("qrImage").src = qrDataUrl;
       } catch (e) {
         console.error("QRコード生成に失敗しました:", e);
+      }
+
+      // --- 残高取得 ---
+      async function fetchBalance() {
+        const res = await fetch(`/balance/${nickname}`);
+        const data = await res.json();
+        balanceEl.textContent = data.balance;
       }
 
       // --- ランキング取得 ---
@@ -66,8 +94,64 @@
         });
       }
 
-      fetchRanking();
-      socket.on("update", fetchRanking);
+      // --- 履歴取得 ---
+      async function fetchHistory() {
+        const res = await fetch(`/history/${nickname}`);
+        const history = await res.json();
+        historyEl.innerHTML = "";
+        history.forEach(h => {
+          const li = document.createElement("li");
+          let text = `[${h.date.split("T")[0]}] `;
+          if (h.type === "クエスト報酬") text += `クエスト報酬: +${h.amount}`;
+          else if (h.type === "送金") text += `送金: -${h.amount} → ${h.to}`;
+          else if (h.type === "受取") text += `受取: +${h.amount} ← ${h.from}`;
+          li.textContent = text;
+          historyEl.appendChild(li);
+        });
+      }
+
+      // --- 初回ロード ---
+      fetchBalance(); fetchRanking(); fetchHistory();
+
+      // --- Socket.io更新 ---
+      socket.on("update", () => {
+        fetchBalance(); fetchRanking(); fetchHistory();
+      });
+
+      // --- クエスト報酬 ---
+      document.getElementById("questBtn").addEventListener("click", async () => {
+        const amount = Number(document.getElementById("questAmount").value);
+        if (!amount) return alert("金額を入力してください");
+        const res = await fetch("/quest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nickname, amount })
+        });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        fetchBalance(); fetchHistory(); fetchRanking();
+      });
+
+      // --- 送金 ---
+      document.getElementById("sendBtn").addEventListener("click", async () => {
+        const to = document.getElementById("sendTo").value;
+        const amount = Number(document.getElementById("sendAmount").value);
+        if (!to || !amount) return alert("送金先と金額を入力してください");
+
+        const res = await fetch("/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from: nickname, to, amount })
+        });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        fetchBalance(); fetchHistory(); fetchRanking();
+      });
+
+      // --- QR送金ページへ ---
+      document.getElementById("goPayBtn").addEventListener("click", () => {
+        location.href = `/pay.html?from=${encodeURIComponent(nickname)}`;
+      });
     });
   </script>
 </body>
