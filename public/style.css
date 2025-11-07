@@ -102,4 +102,79 @@ input {
 
 /* =========================================
    📱 スマホ用デザイン（768px以下）
-=========================
+========================================= */
+@media (max-width: 768px) {
+  /* 📢 “ありえない大きさ” */
+  body {
+    font-size: 3rem;
+    line-height: 1.8;
+  }
+
+  h1 {
+    font-size: 5rem;
+  }
+
+  h2 {
+    font-size: 4rem;
+  }
+
+  p, li, span {
+    font-size: 3rem;
+  }
+
+  input {
+    font-size: 3rem;
+    padding: 30px;
+    border-radius: 20px;
+    width: 80%;
+    max-width: 500px;
+  }
+
+  button {
+    font-size: 3.5rem;
+    padding: 40px 60px;
+    border-radius: 30px;
+    margin: 20px 0;
+  }
+
+  /* QRコードをやや小さくして全体バランスを取る */
+  .qr-section img {
+    width: 180px;
+    height: 180px;
+  }
+
+  /* ランキングを一番下に移動 */
+  .main-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ranking {
+    width: 100%;
+    margin-top: 80px;
+    text-align: center;
+  }
+
+  .ranking ul {
+    display: inline-block;
+    text-align: left;
+  }
+
+  /* スクロールが起きないように少し余白を調整 */
+  .container {
+    padding-bottom: 150px;
+  }
+}
+
+/* =========================================
+   💻 PC用デザイン（769px以上）
+========================================= */
+@media (min-width: 769px) {
+  body {
+    font-size: 1rem;
+  }
+
+  .ranking {
+    max-width: 300px;
+  }
+}
