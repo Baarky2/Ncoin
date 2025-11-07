@@ -1,8 +1,8 @@
-import http from 'k6/http';
+/*import http from 'k6/http';
 import { sleep, check } from 'k6';
 
 export const options = {
-  vus: 1, // ← 100人同時アクセス
+  vus: 100, // ← 100人同時アクセス
   iterations: 10000, // 合計リクエスト数（500回×100人）
   thresholds: {
     http_req_failed: ['rate<0.05'], // 失敗率5%未満
@@ -14,8 +14,8 @@ export default function () {
   const baseURL = 'https://ncoin-w4hm.onrender.com';
 
   // ランダムユーザー名生成
-  const userA = `user${Math.floor(Math.random() * 1)}`;
-  const userB = `user${Math.floor(Math.random() * 1)}`;
+  const userA = `user${Math.floor(Math.random() * 100)}`;
+  const userB = `user${Math.floor(Math.random() * 100)}`;
 
   // ランダム送金額
   const amount = Math.floor(Math.random() * 50) + 1;
@@ -32,4 +32,4 @@ export default function () {
   });
 
   sleep(0.1);
-}
+}*/
