@@ -43,7 +43,6 @@ function loadDB() {
   }
   return dbCache;
 }
-
 function safeSaveDB(db) {
   dbCache = db;
   dirty = true;
