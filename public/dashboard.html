@@ -3,142 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1 id="welcome"></h1>
+  <div class="container">
+    <div class="qr-section">
+      <img id="qrImage" alt="QRコード">
+      <h2>あなたのQRコード</h2>
+    </div>
 
-  <h2>残高: <span id="balance">0</span> コイン</h2>
+    <div class="main-content">
+      <div class="content">
+        <h1 id="welcome">ダッシュボード</h1>
+        <p>ここにメイン情報やボタンなどを配置します。</p>
+      </div>
 
-  <!-- クエスト報酬 -->
-  <h2>クエスト報酬</h2>
-  <input type="number" id="questAmount" placeholder="獲得コイン">
-  <button id="questBtn">報酬を獲得</button>
+      <div class="ranking">
+        <h2>ランキング</h2>
+        <ul id="rankingList">
+          <li>1位: Alice - 1200pt</li>
+          <li>2位: Bob - 950pt</li>
+          <li>3位: Carol - 820pt</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-  <!-- 送金 -->
-  <h2>送金</h2>
-  <input type="text" id="sendTo" placeholder="送金先">
-  <input type="number" id="sendAmount" placeholder="金額">
-  <button id="sendBtn">送金</button>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script>
+    window.addEventListener("load", async () => {
+      const socket = io();
+      const nickname = localStorage.getItem("nickname");
+      if (!nickname) {
+        alert("ログイン情報がありません");
+        location.href = "/login.html";
+        return;
+      }
 
-  <!-- 送金用QR -->
-  <h2>送金用QR</h2>
-  <img id="qrImage" alt="QRコード">
+      document.getElementById("welcome").textContent = `ようこそ ${nickname} さん`;
 
-  <!-- ランキング -->
-  <h2>ランキング</h2>
-  <ol id="rankingList"></ol>
+      const rankingEl = document.getElementById("rankingList");
 
-  <!-- 履歴 -->
-  <h2>送金 / クエスト履歴</h2>
-  <ul id="historyList"></ul>
-  <!-- QR送金ページへ -->
-  <button id="goPayBtn">QR送金ページへ</button>
-<script>
-    document.getElementById("goPayBtn").addEventListener("click", () => {
-    const nickname = localStorage.getItem("nickname");
-    if (!nickname) {
-      alert("ログイン情報がありません");
-      location.href = "/login.html";
-      return;
-    }
-    // nickname を URL パラメータとして渡す
-    location.href = `/pay.html?from=${encodeURIComponent(nickname)}`;
-  });
-  const socket = io();
-  let nickname = localStorage.getItem("nickname");
-  if (!nickname) {
-    alert("ログイン情報がありません");
-    location.href = "/login.html";
-  }
-  document.getElementById("welcome").textContent = `ようこそ ${nickname} さん`;
+      // ✅ QRコード生成
+      try {
+        const qrUrl = `${location.origin}/pay.html?from=${encodeURIComponent(nickname)}`;
+        const qrDataUrl = await QRCode.toDataURL(qrUrl);
+        document.getElementById("qrImage").src = qrDataUrl;
+      } catch (e) {
+        console.error("QRコード生成に失敗しました:", e);
+      }
 
-  const balanceEl = document.getElementById("balance");
-  const rankingEl = document.getElementById("rankingList");
-  const historyEl = document.getElementById("historyList");
+      // --- ランキング取得 ---
+      async function fetchRanking() {
+        const res = await fetch("/ranking");
+        const ranking = await res.json();
+        rankingEl.innerHTML = "";
+        ranking.forEach(u => {
+          const li = document.createElement("li");
+          li.textContent = `${u.nickname}: ${u.balance} コイン`;
+          rankingEl.appendChild(li);
+        });
+      }
 
-  // QRコード生成
-  (async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const from = urlParams.get("from");
-    const qrUrl = `${location.origin}/pay.html?from=${encodeURIComponent(nickname)}`;
-    const qrDataUrl = await QRCode.toDataURL(qrUrl);
-    document.getElementById("qrImage").src = qrDataUrl;
-  })();
-
-  // --- 残高取得 ---
-  async function fetchBalance() {
-    const res = await fetch(`/balance/${nickname}`);
-    const data = await res.json();
-    balanceEl.textContent = data.balance;
-  }
-
-  // --- クエスト報酬 ---
-  document.getElementById("questBtn").addEventListener("click", async () => {
-    const amount = Number(document.getElementById("questAmount").value);
-    if (!amount) return alert("金額を入力してください");
-    const res = await fetch("/quest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname, amount })
+      fetchRanking();
+      socket.on("update", fetchRanking);
     });
-    const data = await res.json();
-    if (data.error) alert(data.error);
-    fetchBalance(); fetchHistory(); fetchRanking();
-  });
-
-  // --- 送金 ---
-  document.getElementById("sendBtn").addEventListener("click", async () => {
-    const to = document.getElementById("sendTo").value;
-    const amount = Number(document.getElementById("sendAmount").value);
-    if (!to || !amount) return alert("送金先と金額を入力してください");
-
-    const res = await fetch("/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: nickname, to, amount })
-    });
-    const data = await res.json();
-    if (data.error) alert(data.error);
-    fetchBalance(); fetchHistory(); fetchRanking();
-  });
-
-  // --- ランキング取得 ---
-  async function fetchRanking() {
-    const res = await fetch("/ranking");
-    const ranking = await res.json();
-    rankingEl.innerHTML = "";
-    ranking.forEach(u => {
-      const li = document.createElement("li");
-      li.textContent = `${u.nickname}: ${u.balance} コイン`;
-      rankingEl.appendChild(li);
-    });
-  }
-
-  // --- 履歴取得 ---
-  async function fetchHistory() {
-    const res = await fetch(`/history/${nickname}`);
-    const history = await res.json();
-    historyEl.innerHTML = "";
-    history.forEach(h => {
-      const li = document.createElement("li");
-      let text = `[${h.date.split("T")[0]}] `;
-      if (h.type === "クエスト報酬") text += `クエスト報酬: +${h.amount}`;
-      else if (h.type === "送金") text += `送金: -${h.amount} → ${h.to}`;
-      else if (h.type === "受取") text += `受取: +${h.amount} ← ${h.from}`;
-      li.textContent = text;
-      historyEl.appendChild(li);
-    });
-  }
-
-  // --- 初回ロード ---
-  fetchBalance(); fetchRanking(); fetchHistory();
-
-  // --- Socket.io で更新を受け取る ---
-  socket.on("update", ({ db }) => {
-    fetchBalance(); fetchRanking(); fetchHistory();
-  });
-</script>
+  </script>
 </body>
 </html>
