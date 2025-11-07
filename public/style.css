@@ -1,5 +1,5 @@
 /* =========================================
-   🌐 共通デザイン（PC・スマホ両対応）
+   🌐 共通デザイン（PC・スマホ共通）
 ========================================= */
 body {
   font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
@@ -102,63 +102,4 @@ input {
 
 /* =========================================
    📱 スマホ用デザイン（768px以下）
-========================================= */
-@media (max-width: 768px) {
-  /* 文字を全体的に大きく */
-  body {
-    font-size: 1.4rem;
-  }
-
-  h1 {
-    font-size: 2rem;
-  }
-
-  h2 {
-    font-size: 1.8rem;
-  }
-
-  button {
-    font-size: 1.3rem;
-    padding: 14px 28px;
-  }
-
-  input {
-    font-size: 1.3rem;
-  }
-
-  /* QRコードを少し小さめに調整 */
-  .qr-section img {
-    width: 160px;
-    height: 160px;
-  }
-
-  /* ランキングを下に移動（縦レイアウト） */
-  .main-content {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .ranking {
-    width: 100%;
-    margin-top: 30px;
-    text-align: center;
-  }
-
-  .ranking ul {
-    display: inline-block;
-    text-align: left;
-  }
-}
-
-/* =========================================
-   💻 PC用デザイン（769px以上）
-========================================= */
-@media (min-width: 769px) {
-  body {
-    font-size: 1rem;
-  }
-
-  .ranking {
-    max-width: 300px;
-  }
-}
+=========================
