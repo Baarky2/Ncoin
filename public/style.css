@@ -8,6 +8,7 @@ body {
   padding: 0;
   text-align: center;
   color: #333;
+  overflow-x: hidden;
 }
 
 .container {
@@ -20,7 +21,7 @@ body {
 /* 🔳 QRコード部分 */
 .qr-section {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .qr-section img {
@@ -104,46 +105,55 @@ input {
    📱 スマホ用デザイン（768px以下）
 ========================================= */
 @media (max-width: 768px) {
-  /* 📢 “ありえない大きさ” */
+  /* 📢 全体をとにかく巨大化 */
   body {
-    font-size: 3rem;
+    font-size: 4rem;
     line-height: 1.8;
   }
 
   h1 {
-    font-size: 5rem;
+    font-size: 6rem;
   }
 
   h2 {
-    font-size: 4rem;
+    font-size: 5rem;
   }
 
   p, li, span {
-    font-size: 3rem;
+    font-size: 4rem;
   }
 
   input {
-    font-size: 3rem;
-    padding: 30px;
-    border-radius: 20px;
-    width: 80%;
-    max-width: 500px;
-  }
-
-  button {
-    font-size: 3.5rem;
-    padding: 40px 60px;
+    font-size: 4rem;
+    padding: 40px;
     border-radius: 30px;
+    border: 5px solid #444;
+    width: 85%;
+    max-width: 600px;
     margin: 20px 0;
   }
 
-  /* QRコードをやや小さくして全体バランスを取る */
-  .qr-section img {
-    width: 180px;
-    height: 180px;
+  button {
+    font-size: 4rem;
+    padding: 50px 70px;
+    border-radius: 40px;
+    border: 5px solid #003d99;
+    margin: 30px 0;
+    box-shadow: 0 8px 0 #003d99;
   }
 
-  /* ランキングを一番下に移動 */
+  button:active {
+    transform: translateY(5px);
+    box-shadow: 0 3px 0 #003d99;
+  }
+
+  /* QRコードを少し控えめに */
+  .qr-section img {
+    width: 200px;
+    height: 200px;
+  }
+
+  /* ランキングをページ最下部に移動＆スクロールでしか見えないように */
   .main-content {
     flex-direction: column;
     align-items: center;
@@ -151,8 +161,11 @@ input {
 
   .ranking {
     width: 100%;
-    margin-top: 80px;
+    margin-top: 200px;
     text-align: center;
+    background: #ffffffcc;
+    padding: 60px 0;
+    border-top: 10px solid #007bff;
   }
 
   .ranking ul {
@@ -160,9 +173,9 @@ input {
     text-align: left;
   }
 
-  /* スクロールが起きないように少し余白を調整 */
+  /* スクロール領域を確保（ランキングが下に隠れる） */
   .container {
-    padding-bottom: 150px;
+    padding-bottom: 1000px;
   }
 }
 
