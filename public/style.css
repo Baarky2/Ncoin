@@ -107,7 +107,7 @@ input {
 @media (max-width: 768px) {
   /* 📢 文字をありえないほど巨大化 */
   html {
-    font-size: 20; /* ← これで全体がスケールアップ */
+    font-size: 25%; /* ← これで全体がスケールアップ */
   }
 
   body {
