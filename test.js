@@ -11,7 +11,7 @@ export const options = {
 };
 
 export default function () {
-  const baseURL = 'https://ncoin-production.up.railway.app';
+  const baseURL = 'https://ncoin-w4hm.onrender.com';
 
   // ランダムユーザー名生成
   const userA = `user${Math.floor(Math.random() * 50)}`;
