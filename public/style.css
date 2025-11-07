@@ -105,58 +105,57 @@ input {
    📱 スマホ用デザイン（768px以下）
 ========================================= */
 @media (max-width: 768px) {
-  /* 📢 文字をありえないほど巨大化 */
-  html {
-    font-size: 25%; /* ← これで全体がスケールアップ */
-  }
-
+  /* 📱 スマホ全体フォントはそのまま巨大化維持 */
   body {
-    font-size: 2.8rem;
-    line-height: 1.8;
+    font-size: 4rem;
+    line-height: 1.6;
   }
 
-  h1 {
-    font-size: 4.5rem;
+  h1 { font-size: 6rem; }
+  h2 { font-size: 5rem; }
+  p, li, span { font-size: 4rem; }
+
+  /* 🟩 各カードの枠を小さく */
+  .content, .ranking {
+    padding: 10px;           /* ← 中の余白を減らす */
+    border-radius: 10px;     /* ← 角丸も控えめに */
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
   }
 
-  h2 {
-    font-size: 3.5rem;
-  }
-
-  li, p, span {
-    font-size: 3rem;
-  }
-
+  /* 🟦 入力欄を小さめに */
   input {
-    font-size: 3rem;
-    padding: 40px;
-    border-radius: 25px;
-    border: 5px solid #444;
-    width: 90%;
-    margin: 25px 0;
+    font-size: 3.5rem;       /* ← 少し小さめ */
+    padding: 15px 20px;      /* ← 内側の余白を大幅に減らす */
+    border-radius: 15px;
+    border: 3px solid #444;
+    width: 80%;
+    max-width: 500px;
+    margin: 15px 0;
   }
 
+  /* 🔵 ボタンの枠も縮小 */
   button {
-    font-size: 3rem;
-    padding: 40px 70px;
-    border-radius: 35px;
-    border: 5px solid #003d99;
-    margin: 40px 0;
-    box-shadow: 0 10px 0 #003d99;
+    font-size: 3.5rem;
+    padding: 20px 40px;      /* ← 以前の半分くらい */
+    border-radius: 20px;
+    border: 3px solid #003d99;
+    margin: 20px 0;
+    box-shadow: 0 5px 0 #003d99;
   }
 
   button:active {
-    transform: translateY(6px);
-    box-shadow: 0 4px 0 #003d99;
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #003d99;
   }
 
-  /* QRコードは控えめに小型化 */
+  /* 🔳 QRコード枠を少し小さく */
   .qr-section img {
-    width: 160px;
-    height: 160px;
+    width: 150px;
+    height: 150px;
+    border: 3px solid #007bff;
   }
 
-  /* ランキングを最下部へ配置 */
+  /* 🏆 ランキングは最下部に（スクロールで見える） */
   .main-content {
     flex-direction: column;
     align-items: center;
@@ -167,9 +166,8 @@ input {
     margin-top: 200px;
     text-align: center;
     background: #ffffffcc;
-    padding: 80px 0;
-    border-top: 10px solid #007bff;
-    font-size: 3rem;
+    padding: 30px 0;
+    border-top: 6px solid #007bff;
   }
 
   .ranking ul {
@@ -177,11 +175,12 @@ input {
     text-align: left;
   }
 
-  /* スクロールでランキングが現れるようにする */
+  /* スクロール領域確保 */
   .container {
-    padding-bottom: 1200px;
+    padding-bottom: 1000px;
   }
 }
+
 
 /* =========================================
    💻 PC用デザイン（769px以上）
