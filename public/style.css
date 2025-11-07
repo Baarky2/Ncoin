@@ -105,55 +105,58 @@ input {
    📱 スマホ用デザイン（768px以下）
 ========================================= */
 @media (max-width: 768px) {
-  /* 📢 全体をとにかく巨大化 */
+  /* 📢 文字をありえないほど巨大化 */
+  html {
+    font-size: 250%; /* ← これで全体がスケールアップ */
+  }
+
   body {
-    font-size: 4rem;
+    font-size: 2.8rem;
     line-height: 1.8;
   }
 
   h1 {
-    font-size: 6rem;
+    font-size: 4.5rem;
   }
 
   h2 {
-    font-size: 5rem;
+    font-size: 3.5rem;
   }
 
-  p, li, span {
-    font-size: 4rem;
+  li, p, span {
+    font-size: 3rem;
   }
 
   input {
-    font-size: 4rem;
+    font-size: 3rem;
     padding: 40px;
-    border-radius: 30px;
+    border-radius: 25px;
     border: 5px solid #444;
-    width: 85%;
-    max-width: 600px;
-    margin: 20px 0;
+    width: 90%;
+    margin: 25px 0;
   }
 
   button {
-    font-size: 4rem;
-    padding: 50px 70px;
-    border-radius: 40px;
+    font-size: 3rem;
+    padding: 40px 70px;
+    border-radius: 35px;
     border: 5px solid #003d99;
-    margin: 30px 0;
-    box-shadow: 0 8px 0 #003d99;
+    margin: 40px 0;
+    box-shadow: 0 10px 0 #003d99;
   }
 
   button:active {
-    transform: translateY(5px);
-    box-shadow: 0 3px 0 #003d99;
+    transform: translateY(6px);
+    box-shadow: 0 4px 0 #003d99;
   }
 
-  /* QRコードを少し控えめに */
+  /* QRコードは控えめに小型化 */
   .qr-section img {
-    width: 200px;
-    height: 200px;
+    width: 160px;
+    height: 160px;
   }
 
-  /* ランキングをページ最下部に移動＆スクロールでしか見えないように */
+  /* ランキングを最下部へ配置 */
   .main-content {
     flex-direction: column;
     align-items: center;
@@ -164,8 +167,9 @@ input {
     margin-top: 200px;
     text-align: center;
     background: #ffffffcc;
-    padding: 60px 0;
+    padding: 80px 0;
     border-top: 10px solid #007bff;
+    font-size: 3rem;
   }
 
   .ranking ul {
@@ -173,9 +177,9 @@ input {
     text-align: left;
   }
 
-  /* スクロール領域を確保（ランキングが下に隠れる） */
+  /* スクロールでランキングが現れるようにする */
   .container {
-    padding-bottom: 1000px;
+    padding-bottom: 1200px;
   }
 }
 
