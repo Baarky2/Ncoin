@@ -1,41 +1,83 @@
-/* 🔷 共通スタイル（全デバイスに適用） */
+/* =========================================
+   🌐 共通デザイン（PC・スマホ両対応）
+========================================= */
 body {
-  font-family: "Segoe UI", sans-serif;
-  background: #f4f4f4;
-  color: #333;
-  text-align: center;
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+  background-color: #f8f9fa;
   margin: 0;
+  padding: 0;
+  text-align: center;
+  color: #333;
 }
 
-/* --- レイアウト --- */
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px;
+  padding: 20px;
+}
+
+/* 🔳 QRコード部分 */
+.qr-section {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
 .qr-section img {
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   object-fit: contain;
-  border-radius: 20px;
+  border-radius: 16px;
+  border: 4px solid #007bff;
+  background-color: #fff;
 }
 
+.qr-section h2 {
+  margin-top: 10px;
+  font-size: 1.3rem;
+}
+
+/* 🧭 メイン部分とランキングを横並びに */
 .main-content {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   width: 90%;
   max-width: 1000px;
-  margin-top: 20px;
+  gap: 30px;
+}
+
+.content {
+  flex: 2;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 .ranking {
-  width: 200px;
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: left;
 }
 
-/* --- ボタン共通 --- */
+.ranking h2 {
+  margin-bottom: 10px;
+}
+
+.ranking ul {
+  list-style: none;
+  padding: 0;
+}
+
+.ranking li {
+  margin: 6px 0;
+}
+
+/* 🟦 ボタン */
 button {
   background: #007bff;
   color: white;
@@ -51,49 +93,72 @@ button:hover {
   background: #0056b3;
 }
 
-/* -------------------------
-   📱 スマホ向けデザイン
-------------------------- */
-@media (max-width: 768px) {
-  .main-content {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .qr-section img {
-    width: 140px;
-    height: 140px;
-  }
-
-  h1, h2 {
-    font-size: 1.6rem;
-  }
-
-  p, li, button {
-    font-size: 1.2rem;
-  }
-
-  .ranking {
-    width: 100%;
-    text-align: center;
-    margin-top: 20px;
-  }
+input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
 }
 
-/* -------------------------
-   💻 PC向けデザイン
-------------------------- */
-@media (min-width: 769px) {
-  .qr-section img {
-    width: 220px;
-    height: 220px;
+/* =========================================
+   📱 スマホ用デザイン（768px以下）
+========================================= */
+@media (max-width: 768px) {
+  /* 文字を全体的に大きく */
+  body {
+    font-size: 1.4rem;
   }
 
   h1 {
     font-size: 2rem;
   }
 
-  p, li, button {
+  h2 {
+    font-size: 1.8rem;
+  }
+
+  button {
+    font-size: 1.3rem;
+    padding: 14px 28px;
+  }
+
+  input {
+    font-size: 1.3rem;
+  }
+
+  /* QRコードを少し小さめに調整 */
+  .qr-section img {
+    width: 160px;
+    height: 160px;
+  }
+
+  /* ランキングを下に移動（縦レイアウト） */
+  .main-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ranking {
+    width: 100%;
+    margin-top: 30px;
+    text-align: center;
+  }
+
+  .ranking ul {
+    display: inline-block;
+    text-align: left;
+  }
+}
+
+/* =========================================
+   💻 PC用デザイン（769px以上）
+========================================= */
+@media (min-width: 769px) {
+  body {
     font-size: 1rem;
+  }
+
+  .ranking {
+    max-width: 300px;
   }
 }
