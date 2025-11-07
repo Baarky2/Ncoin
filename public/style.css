@@ -3,7 +3,12 @@ body {
   padding: 0;
   font-family: "Noto Sans JP", sans-serif;
   background: linear-gradient(180deg, #f7faff 0%, #e8eff9 100%);
-  color: #333;
+  color: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* スクロール不要化 */
+  overflow: hidden;
 }
 
 /* コンテナ全体 */
@@ -11,117 +16,116 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px;
+  text-align: center;
   max-width: 800px;
-  margin: auto;
+  width: 95%;
+  height: 100%;
+  justify-content: space-between;
+  padding: 10px 0;
 }
 
 /* QRコードセクション */
 .qr-section {
-  text-align: center;
-  margin: 20px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .qr-section img {
-  width: min(90vw, 360px);
+  width: 160px;
   height: auto;
-  border: 4px solid #4a90e2;
+  border: 3px solid #4a90e2;
   border-radius: 16px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .qr-section h2 {
-  margin-top: 10px;
-  font-size: 1.2rem;
+  margin-top: 8px;
+  font-size: 1.4rem;
   color: #4a90e2;
 }
 
-/* メイン部分 */
+/* メインコンテンツ全体 */
 .main-content {
+  flex: 2;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* 左：メインボタン・残高表示など */
+.content {
+  flex: 2;
+  background: white;
+  border-radius: 16px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
-  width: 100%;
-  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
-/* 中央コンテンツ */
-.content {
-  width: 100%;
-  background-color: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  padding: 20px;
-  margin-bottom: 20px;
+h1 {
+  font-size: 2rem;
+  margin-bottom: 10px;
 }
 
-h1, h2 {
-  text-align: center;
-  color: #333;
+h2 {
+  font-size: 1.4rem;
+  margin: 10px 0;
 }
 
 #balance {
   color: #2a77d4;
   font-weight: bold;
+  font-size: 1.6rem;
 }
 
 input {
   width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border: 1px solid #ccc;
+  padding: 14px;
+  margin: 6px 0;
   border-radius: 8px;
-  font-size: 1rem;
+  border: 1px solid #bbb;
+  font-size: 1.2rem;
 }
 
 button {
   width: 100%;
-  padding: 14px;
-  font-size: 1.1rem;
+  padding: 16px;
+  font-size: 1.4rem;
   background-color: #4a90e2;
   color: white;
   border: none;
   border-radius: 10px;
-  margin-top: 10px;
   transition: 0.2s;
+  font-weight: bold;
 }
 
 button:hover {
   background-color: #357ac8;
+  transform: scale(1.02);
 }
 
-.pay-section {
-  margin: 20px 0;
-}
-
-/* 履歴 */
-#historyList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#historyList li {
-  background: #f5f7fb;
-  margin: 5px 0;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-}
-
-/* ランキング */
+/* 右：ランキング */
 .ranking {
-  width: 100%;
-  background-color: #fff;
+  flex: 1;
+  background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  padding: 20px;
-  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  padding: 10px;
+  overflow-y: auto;
 }
 
 .ranking h2 {
-  text-align: center;
+  font-size: 1.4rem;
   color: #4a90e2;
+  margin-bottom: 5px;
 }
 
 .ranking ol {
@@ -131,61 +135,65 @@ button:hover {
 }
 
 .ranking li {
-  font-size: 1rem;
   background: #eef4fb;
   margin: 6px 0;
   padding: 10px;
   border-radius: 8px;
+  font-size: 1.2rem;
   text-align: center;
 }
 
-/* --- スマホ最適化 --- */
+/* 履歴 */
+#historyList {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+#historyList li {
+  background: #f5f7fb;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* スマホ用調整 */
 @media (max-width: 768px) {
   body {
-    background: #f8faff;
+    height: auto;
+    overflow-y: auto;
   }
 
   .container {
-    padding: 10px;
+    height: auto;
+    padding-bottom: 30px;
   }
 
-  .content, .ranking {
-    width: 95%;
+  .qr-section img {
+    width: 120px;
   }
 
   h1 {
-    font-size: 1.3rem;
+    font-size: 1.8rem;
   }
 
   h2 {
+    font-size: 1.3rem;
+  }
+
+  input, button {
     font-size: 1.1rem;
   }
 
-  button {
-    font-size: 1rem;
-    padding: 12px;
-  }
-
-  input {
-    font-size: 1rem;
-  }
-}
-
-/* --- PC用微調整 --- */
-@media (min-width: 769px) {
   .main-content {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 20px;
-  }
-
-  .content {
-    flex: 2;
+    flex-direction: column;
+    align-items: center;
   }
 
   .ranking {
-    flex: 1;
-    position: sticky;
-    top: 20px;
+    width: 90%;
+    margin-top: 10px;
   }
 }
