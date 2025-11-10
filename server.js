@@ -150,19 +150,22 @@ app.post("/send", async (req, res) => {
   res.json({ success: true, balance: db[from].balance });
 });
 
-// === QRコード生成 ===
+// 安定版 QR生成
 app.get("/generate-qr/:nickname/:amount", async (req, res) => {
   const { nickname, amount } = req.params;
   if (!nickname || !amount) return res.status(400).json({ error: "不足情報" });
 
-  const payload = JSON.stringify({ from: nickname, amount: Number(amount) });
   try {
-    const qr = await QRCode.toDataURL(payload);
+    // QR に URL を直接格納
+    const qrUrl = `${req.protocol}://${req.get("host")}/pay.html?from=${encodeURIComponent(nickname)}&amount=${encodeURIComponent(amount)}`;
+    const qr = await QRCode.toDataURL(qrUrl);
     res.json({ qr });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "QR生成失敗" });
   }
 });
+
 
 // === ランキング ===
 app.get("/ranking", (req, res) => {
