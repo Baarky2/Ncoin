@@ -69,8 +69,8 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 // ==============================================
-// === 起動時にデフォルトユーザーを登録 ===
-function initUsers() {
+// === 起動時にデフォルトユーザーを登録 ===　 　　　　（現在停止中）
+/*function initUsers() {
   const db = loadDB();
   for (let i = 0; i < 100; i++) {
     const name = `user${i}`;
@@ -81,7 +81,7 @@ function initUsers() {
 }
 
 initUsers();
-
+*/
 
 // === ページルート ===
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
@@ -110,7 +110,25 @@ app.get("/balance/:nickname", (req, res) => {
   if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
   res.json({ balance: user.balance });
 });
+// === クイズ ===
+app.post("/quiz01", async (req, res) => {
+  const { nickname, answer } = req.body;
+  const correctAnswer = "フルーツ"; // ←ここに正解を設定
+  if (answer !== correctAnswer) {
+    return res.status(400).json({ error: "不正解です" });
+  }
 
+  const reward = 100; // クイズ正解報酬
+  const db = loadDB();
+  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  db[nickname].balance += reward;
+  db[nickname].history.push({ type: "クイズ正解", amount: reward, date: new Date().toISOString() });
+  await safeSaveDB(db);
+
+  io.emit("update");
+  res.json({ balance: db[nickname].balance });
+});
 // === クエスト報酬 ===
 app.post("/quest", async (req, res) => {
   const { nickname, amount } = req.body;

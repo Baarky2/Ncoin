@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAZOTOKI RALLY Q1</title>
+  <style>
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+      text-align: center;
+      background: #f8f9fa;
+      color: #333;
+      padding: 20px;
+    }
+    img {
+      width: 90%;
+      max-width: 600px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input {
+      padding: 8px;
+      margin-top: 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 200px;
+    }
+    button {
+      margin-top: 12px;
+      padding: 8px 16px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <h1>NAZOTOKI RALLY Q1</h1>
+  <img src="/謎解きラリー_スライド03.png" alt="問題画像" />
+  
+  <div>
+    <p>解答を入力してください：</p>
+    <input type="text" id="answerInput" placeholder="答えを入力" />
+    <button id="checkAnswerBtn">解答する</button>
+  </div>
+
+  <div id="resultMsg" style="margin-top:10px;font-weight:bold;"></div>
+  <button id="puzzleClearBtn" style="display:none;background:#28a745;">謎をクリア！100コイン獲得</button>
+
+  <script>
+    // ✅ 設定（問題ごとに変える）
+    const correctAnswer = "スタート"; // ← 問題の正解
+    const questId = "quiz03"; // ← 問題ID（quiz02, quiz03などに変える）
+    const rewardAmount = 100; // ← コイン報酬
+
+    // ログイン確認
+    const nickname = localStorage.getItem("nickname");
+    if (!nickname) alert("⚠️ ログイン情報がありません。トップからログインしてください。");
+
+    // クリア済みチェック
+    const cleared = localStorage.getItem(`cleared_${questId}`);
+    if (cleared === "true") {
+      document.getElementById("resultMsg").textContent = "この謎はすでにクリア済みです ✅";
+      document.getElementById("resultMsg").style.color = "gray";
+      document.getElementById("checkAnswerBtn").disabled = true;
+      document.getElementById("answerInput").disabled = true;
+    }
+
+    // 解答ボタン
+    document.getElementById("checkAnswerBtn").addEventListener("click", () => {
+      const ans = document.getElementById("answerInput").value.trim();
+      const result = document.getElementById("resultMsg");
+      if (ans === "") {
+        result.textContent = "解答を入力してください。";
+        result.style.color = "gray";
+        return;
+      }
+      if (ans === correctAnswer) {
+        result.textContent = "正解です！🎉";
+        result.style.color = "green";
+        document.getElementById("puzzleClearBtn").style.display = "inline-block";
+      } else {
+        result.textContent = "不正解です。もう一度考えてみましょう。";
+        result.style.color = "red";
+      }
+    });
+
+    // ✅ クリアボタン（報酬＋移動）
+    document.getElementById("puzzleClearBtn").addEventListener("click", async () => {
+      if (!nickname) return alert("ログイン情報がありません");
+
+      // クリア済みなら報酬スキップ
+      if (localStorage.getItem(`cleared_${questId}`) === "true") {
+        alert("この謎はすでにクリア済みです。");
+        location.href = "/dashboard";
+        return;
+      }
+
+      try {
+        const res = await fetch("/quest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nickname, amount: rewardAmount, type: "謎解き" })
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert("コイン付与に失敗: " + data.error);
+        } else {
+          // ✅ ローカルにクリア記録
+          localStorage.setItem(`cleared_${questId}`, "true");
+          alert(`謎解きクリア！${rewardAmount}コイン獲得しました✨`);
+          // ✅ ダッシュボードへ移動
+          location.href = "/dashboard";
+        }
+      } catch (err) {
+        alert("サーバーエラー: " + err);
+      }
+    });
+  </script>
+</body>
+</html>
