@@ -184,12 +184,25 @@ input {
   .ranking { margin-top: 50px; text-align: center; border-top: 4px solid #007bff; }
   .ranking ol { display: inline-block; text-align: left; }
   .container { padding-bottom: 300px; }
-}
-  .quiz-list button {
-    font-size: 1.2rem;
-    padding: 16px 0;
-    width: 500%;
+
+  /* 🔹 クイズ一覧を横並びに＆長めに */
+  .quiz-list {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;            /* 画面幅に応じて折り返す */
+    gap: 10px;
+    margin-top: 20px;
   }
+
+  .quiz-list button {
+    font-size: 1.4rem;
+    padding: 14px 40px;         /* 横に少し長く */
+    width: auto;                /* 幅を固定しない */
+    white-space: nowrap;        /* ボタン内の改行防止 */
+  }
+}
+
 /* =========================================
    💻 PC用デザイン（769px以上）
 ========================================= */
