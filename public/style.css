@@ -105,15 +105,15 @@ input {
    📱 スマホ用デザイン（768px以下）
 ========================================= */
 @media (max-width: 768px) {
-  /* 📱 全体のフォントバランスを調整 */
+  /* 📱 全体のフォントバランスを落ち着かせる */
   body {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
     line-height: 1.6;
   }
 
-  h1 { font-size: 2.4rem; }
-  h2 { font-size: 2rem; }
-  p, li, span { font-size: 1.8rem; }
+  h1 { font-size: 1.8rem; }
+  h2 { font-size: 1.5rem; }
+  p, li, span { font-size: 1.2rem; }
 
   /* 🔳 QRコード部分 */
   .qr-section img {
@@ -124,28 +124,28 @@ input {
   }
 
   .qr-section h2 {
-    font-size: 2rem;
-    margin-top: 10px;
+    font-size: 1.4rem;
+    margin-top: 8px;
   }
 
   /* 💬 入力欄 */
   input {
-    font-size: 1.8rem;
-    padding: 12px 16px;
-    border-radius: 10px;
+    font-size: 1.3rem;
+    padding: 10px 14px;
+    border-radius: 8px;
     border: 2px solid #444;
     width: 80%;
     max-width: 400px;
-    margin: 10px 0;
+    margin: 8px 0;
   }
 
   /* 🟦 ボタン */
   button {
-    font-size: 1.9rem;
-    padding: 14px 28px;
-    border-radius: 10px;
+    font-size: 1.3rem;
+    padding: 12px 24px;
+    border-radius: 8px;
     border: 2px solid #003d99;
-    margin: 12px 0;
+    margin: 10px 0;
     box-shadow: 0 4px 0 #003d99;
     transition: 0.1s;
   }
@@ -168,9 +168,9 @@ input {
     box-shadow: 0 0 8px rgba(0,0,0,0.1);
   }
 
-  /* 🏆 ランキングを下に移動してスクロールで見えるように */
+  /* 🏆 ランキング */
   .ranking {
-    margin-top: 100px;
+    margin-top: 80px;
     background: #ffffffcc;
     border-top: 4px solid #007bff;
     text-align: center;
@@ -182,9 +182,9 @@ input {
     margin: 0 auto;
   }
 
-  /* スクロール領域を確保（ランキングが下に隠れる） */
+  /* スクロール領域を確保 */
   .container {
-    padding-bottom: 500px;
+    padding-bottom: 400px;
   }
 }
 
