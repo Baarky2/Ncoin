@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard</title>
@@ -12,10 +11,13 @@
 
 <body>
   <div class="container">
-    <!-- 🔳 QRコード -->
-    <div class="qr-section">
+    <!-- 🔳 QRコード + Quizボタン -->
+    <div class="qr-quiz-section">
       <img id="qrImage" alt="QRコード">
-      <h2>あなたのQRコード</h2>
+      <div class="quiz-buttons">
+  <button id="quizListBtn" onclick="location.href='/quiz_list.html'">クイズ一覧</button>
+
+      </div>
     </div>
 
     <div class="main-content">
@@ -30,7 +32,7 @@
 
         <h2>送金</h2>
         <input type="text" id="sendTo" placeholder="送金先のニックネーム">
-        <input type="number" id="sendAmount" placeholder="送金金額">
+        <input type="number" id="sendAmount" placeholder="送金額">
         <button id="sendBtn">送金する</button>
 
         <h2>履歴</h2>
@@ -65,7 +67,7 @@ window.addEventListener("load", async () => {
   // ✅ QRコード生成
   try {
     const qrUrl = `${location.origin}/pay.html?from=${encodeURIComponent(nickname)}`;
-    const qrDataUrl = await QRCode.toDataURL(qrUrl);
+    const qrDataUrl = await QRCode.toDataURL(qrUrl, { width: 300 });
     document.getElementById("qrImage").src = qrDataUrl;
   } catch (e) {
     console.error("QRコード生成に失敗:", e);
@@ -103,7 +105,6 @@ window.addEventListener("load", async () => {
     });
   }
 
-  // 初期ロード
   fetchBalance(); fetchRanking(); fetchHistory();
 
   socket.on("update", () => {

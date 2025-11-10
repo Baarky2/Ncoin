@@ -19,148 +19,161 @@ body {
 }
 
 /* 🔳 QRコード部分 */
-.qr-section {
+.qr-quiz-section {
   text-align: center;
   margin-bottom: 30px;
 }
 
-.qr-section img {
+.qr-quiz-section img {
   width: 220px;
   height: 220px;
   object-fit: contain;
-  border-radius: 16px;
-  border: 4px solid #007bff;
+  border-radius: 12px;
+  border: 3px solid #007bff;
   background-color: #fff;
+  padding: 5px;
 }
 
-.qr-section h2 {
+.qr-quiz-section h2 {
   margin-top: 10px;
   font-size: 1.3rem;
 }
 
-/* 🧭 メイン部分とランキングを横並びに */
-.main-content {
+/* Quizボタン */
+.quiz-buttons {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  width: 90%;
-  max-width: 1000px;
-  gap: 30px;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.content {
-  flex: 2;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-
-.ranking {
-  flex: 1;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  text-align: left;
-}
-
-.ranking h2 {
-  margin-bottom: 10px;
-}
-
-.ranking ul {
-  list-style: none;
-  padding: 0;
-}
-
-.ranking li {
-  margin: 6px 0;
-}
-
-/* 🟦 ボタン */
-button {
-  background: #007bff;
+.quiz-buttons button {
+  background: #28a745;
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 10px 20px;
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
   transition: 0.2s;
 }
 
-button:hover {
-  background: #0056b3;
+.quiz-buttons button:hover { background: #1e7e34; }
+
+/* メイン部分とランキングを横並び */
+.main-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 90%;
+  max-width: 1000px;
+  gap: 20px;
 }
 
+.content {
+  flex: 2;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.ranking {
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  text-align: left;
+}
+
+.ranking h2 { margin-bottom: 10px; }
+.ranking ol { padding-left: 20px; }
+.ranking li { margin: 5px 0; }
+
+/* ボタン & 入力欄 */
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+  margin: 5px 0;
+}
+button:hover { background: #0056b3; }
+button:active { transform: translateY(2px); }
+
+/* 入力欄 */
 input {
-  padding: 10px;
+  padding: 12px 10px;          /* 縦幅を少し増やす */
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 1rem;
+  margin: 8px 0;               /* 上下マージン調整 */
+  width: 100%;                 /* 親幅いっぱいに広げる */
+  max-width: 300px;
+  box-sizing: border-box;      /* パディング込みで幅を計算 */
 }
+
+/* 送金ボタン */
+#sendBtn, #questBtn, .pay-btn {
+  width: 100%;                 /* 入力欄と同じ幅に */
+  max-width: 300px;
+  font-size: 1rem;
+  padding: 12px 0;             /* 高さを確保 */
+  margin: 8px 0;
+  border-radius: 6px;
+}
+
+.quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+  margin-top: 30px;
+}
+
+.quiz-list button {
+  background: #007bff;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.quiz-list button:hover { background: #0056b3; }
+
+
 
 /* =========================================
    📱 スマホ用デザイン（768px以下）
 ========================================= */
 @media (max-width: 768px) {
-  /* 📱 全体のフォントバランスを落ち着かせる */
-  body {
-    font-size: 1.2rem;
-    line-height: 1.6;
-  }
+  body { font-size: 1.2rem; line-height: 1.3; }
+  h1 { font-size: 2.2rem; }
+  h2 { font-size: 2rem; }
+  p, li, span { font-size: 1.8rem; }
 
-  h1 { font-size: 1.8rem; }
-  h2 { font-size: 1.5rem; }
-  p, li, span { font-size: 1.2rem; }
-
-  /* 🔳 QRコード部分 */
-  .qr-section img {
-    width: 160px;
-    height: 160px;
-    border: 3px solid #007bff;
-    border-radius: 12px;
-  }
-
-  .qr-section h2 {
-    font-size: 1.4rem;
-    margin-top: 8px;
-  }
-
-  /* 💬 入力欄 */
-  input {
-    font-size: 1.3rem;
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 2px solid #444;
-    width: 80%;
-    max-width: 400px;
-    margin: 8px 0;
-  }
-
-  /* 🟦 ボタン */
-  button {
-    font-size: 1.3rem;
-    padding: 12px 24px;
-    border-radius: 8px;
-    border: 2px solid #003d99;
-    margin: 10px 0;
-    box-shadow: 0 4px 0 #003d99;
-    transition: 0.1s;
-  }
-
-  button:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #003d99;
-  }
-
-  /* 🧭 レイアウト：ランキングは最下部に */
-  .main-content {
+  /* QRとQuizボタン縦配置 */
+  .qr-quiz-section {
+    display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 15px;
   }
 
+  .qr-quiz-section img { width: 180px; height: 180px; }
+  .quiz-buttons { flex-direction: column; width: 90%; }
+  .quiz-buttons button { font-size: 1.8rem; padding: 14px 28px; width: 100%; }
+
+  /* メイン & ランキング縦配置 */
+  .main-content { flex-direction: column; align-items: center; }
   .content, .ranking {
     width: 95%;
     padding: 15px;
@@ -168,35 +181,20 @@ input {
     box-shadow: 0 0 8px rgba(0,0,0,0.1);
   }
 
-  /* 🏆 ランキング */
-  .ranking {
-    margin-top: 80px;
-    background: #ffffffcc;
-    border-top: 4px solid #007bff;
-    text-align: center;
-  }
-
-  .ranking ol {
-    display: inline-block;
-    text-align: left;
-    margin: 0 auto;
-  }
-
-  /* スクロール領域を確保 */
-  .container {
-    padding-bottom: 400px;
-  }
+  .ranking { margin-top: 50px; text-align: center; border-top: 4px solid #007bff; }
+  .ranking ol { display: inline-block; text-align: left; }
+  .container { padding-bottom: 300px; }
 }
-
+  .quiz-list button {
+    font-size: 1.6rem;
+    padding: 16px 0;
+    width: 500%;
+  }
 /* =========================================
    💻 PC用デザイン（769px以上）
 ========================================= */
 @media (min-width: 769px) {
-  body {
-    font-size: 1rem;
-  }
-
-  .ranking {
-    max-width: 300px;
-  }
+  .qr-quiz-section { display: flex; align-items: center; gap: 20px; }
+  .quiz-buttons { flex-direction: column; }
+  .qr-quiz-section h2 { font-size: 1.2rem; }
 }
