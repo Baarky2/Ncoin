@@ -131,23 +131,27 @@ app.post("/quiz01", async (req, res) => {
 });
 // === クエスト報酬 ===
 app.post("/quest", async (req, res) => {
-  const { nickname, amount } = req.body;
+  const { nickname, amount, type, questId } = req.body;
   const reward = Number(amount);
-
-  if (!Number.isFinite(reward) || reward <= 0) {
-    return res.status(400).json({ error: "金額が無効です" });
-  }
+  if (!nickname || !Number.isFinite(reward) || reward <= 0)
+    return res.status(400).json({ error: "無効なリクエストです" });
 
   const db = loadDB();
-  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
+  if (!db[nickname]) db[nickname] = { balance: 0, history: [] }; // 初回登録
+
+  // すでに同じクエストをクリア済みなら加算しない
+  if (questId && db[nickname].history.some(h => h.questId === questId)) {
+    return res.json({ balance: db[nickname].balance, message: "すでにクリア済み" });
+  }
 
   db[nickname].balance += reward;
-  db[nickname].history.push({ type: "クエスト報酬", amount: reward, date: new Date().toISOString() });
+  db[nickname].history.push({ type: type || "クエスト報酬", questId, amount: reward, date: new Date().toISOString() });
   await safeSaveDB(db);
 
   io.emit("update");
   res.json({ balance: db[nickname].balance });
 });
+
 
 
 // === 送金 ===
