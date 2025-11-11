@@ -70,7 +70,7 @@ process.on("SIGTERM", () => {
 });
 // ==============================================
 // === 起動時にデフォルトユーザーを登録 ===　 　　　　（現在停止中）
-/*function initUsers() {
+function initUsers() {
   const db = loadDB();
   for (let i = 0; i < 100; i++) {
     const name = `user${i}`;
@@ -81,7 +81,6 @@ process.on("SIGTERM", () => {
 }
 
 initUsers();
-*/
 
 // === ページルート ===
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
