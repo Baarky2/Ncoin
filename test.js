@@ -22,7 +22,7 @@ export default function () {
   });
 
   // クイズに回答（全員正解にする）
-  const res = http.post(`${baseURL}/quiz01.html`, JSON.stringify({
+  const res = http.post(`${baseURL}/send`, JSON.stringify({
     nickname,
     answer: "フルーツ",  // サーバー側の正解
   }), {
