@@ -1,4 +1,4 @@
-/*import http from 'k6/http';
+import http from 'k6/http';
 import { sleep, check } from 'k6';
 
 export const options = {
@@ -11,7 +11,7 @@ export const options = {
 };
 
 export default function () {
-  const baseURL = 'https://ncoin-w4hm.onrender.com';
+  const baseURL = 'https://ncoin-w4hm.onrender.com/quiz01.html';
 
   // ランダムユーザー名生成
   const userA = `user${Math.floor(Math.random() * 100)}`;
@@ -32,4 +32,4 @@ export default function () {
   });
 
   sleep(0.1);
-}*/
+}

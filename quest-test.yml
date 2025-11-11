@@ -1,5 +1,5 @@
 config:
-  target: "https://ncoin-production.up.railway.app"
+  target: "https://ncoin-w4hm.onrender.com/quiz01.html"
   phases:
     - duration: 60   # 実行時間（秒） → 全体で1分間テスト
       arrivalRate: 50  # 1秒あたり50ユーザーが同時実行
