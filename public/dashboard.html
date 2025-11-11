@@ -50,6 +50,18 @@
   </div>
 
 <script>
+      // ログイン確認
+    const nickname = localStorage.getItem("nickname");
+    if (!nickname) {
+      alert("⚠️ ログイン情報がありません。トップからログインしてください。");
+      location.href = "/login.html";
+    }
+
+    const resultMsg = document.getElementById("resultMsg");
+    const checkBtn = document.getElementById("checkAnswerBtn");
+    const clearBtn = document.getElementById("puzzleClearBtn");
+    const answerInput = document.getElementById("answerInput");
+
 window.addEventListener("load", async () => {
   const socket = io();
   const nickname = localStorage.getItem("nickname");

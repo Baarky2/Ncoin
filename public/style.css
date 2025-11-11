@@ -61,16 +61,38 @@ body {
 
 .quiz-buttons button:hover { background: #1e7e34; }
 
-/* メイン部分とランキングを横並び */
 .main-content {
   display: flex;
-  justify-content: space-between;
+  gap: 20px;
   align-items: flex-start;
+  justify-content: flex-start;
   width: 90%;
   max-width: 1000px;
-  gap: 20px;
+  margin: 0 auto;
 }
 
+/* 左側クイズボタン縦置き */
+.quiz-sidebar {
+  flex: 0 0 150px; /* 幅固定 */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* PC用ボタン */
+.quiz-sidebar button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.quiz-sidebar button:hover { background: #1e7e34; }
+
+/* 右側メイン部分は従来通り */
 .content {
   flex: 2;
   background: white;
@@ -79,13 +101,13 @@ body {
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
 
+/* ランキング部分 */
 .ranking {
   flex: 1;
   background: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 8px rgba(0,0,0,0.1);
-  text-align: left;
 }
 
 .ranking h2 { margin-bottom: 10px; }

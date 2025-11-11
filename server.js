@@ -98,7 +98,7 @@ app.post("/auth", (req, res) => {
 app.post("/login", (req, res) => {
   const nickname = req.body.nickname;
   const db = loadDB();
-  if (!db[nickname]) db[nickname] = { balance: 1000, history: [] };
+  if (!db[nickname]) db[nickname] = { balance: 100, history: [] };
   safeSaveDB(db);
   res.json({ success: true, nickname });
 });
@@ -118,7 +118,7 @@ app.post("/quiz01", async (req, res) => {
     return res.status(400).json({ error: "不正解です" });
   }
 
-  const reward = 100; // クイズ正解報酬
+  const reward = 30; // クイズ正解報酬
   const db = loadDB();
   if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
 

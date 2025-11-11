@@ -5,17 +5,134 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>クイズ一覧</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+      background: #f8f9fa;
+      text-align: center;
+      padding: 30px;
+      color: #333;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .quiz-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      width: 400px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #28a745; /* 緑＝未クリア */
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    button.cleared {
+      background: #ccc !important; /* 灰色＝クリア済み */
+      color: #666;
+      cursor: default;
+    }
+
+    button.cleared:hover {
+      background: #ccc;
+    }
+
+    /* 左下固定ボタン */
+    #backToDashboardBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background 0.2s ease;
+    }
+
+    #backToDashboardBtn:hover {
+      background: #5a6268;
+    }
+  </style>
 </head>
+
 <body>
   <div class="container">
     <h1>クイズ一覧</h1>
     <div class="quiz-list">
-      <button onclick="location.href='/quiz01.html'">Quiz01</button>
-      <button onclick="location.href='/quiz02.html'">Quiz02</button>
-      <button onclick="location.href='/quiz03.html'">Quiz03</button>
-      <button onclick="location.href='/quiz04.html'">Quiz04</button>
-      <button onclick="location.href='/quiz05.html'">Quiz05</button>
+      <button data-id="quiz01" onclick="goQuiz('quiz01')">Quiz01</button>
+      <button data-id="quiz02" onclick="goQuiz('quiz02')">Quiz02</button>
+      <button data-id="quiz03" onclick="goQuiz('quiz03')">Quiz03</button>
+      <button data-id="quiz04" onclick="goQuiz('quiz04')">Quiz04</button>
+      <button data-id="quiz05" onclick="goQuiz('quiz05')">Quiz05</button>
     </div>
   </div>
+
+  <!-- 左下固定：ダッシュボードに戻る -->
+  <button id="backToDashboardBtn">← ダッシュボードに戻る</button>
+
+  <script>
+    // ログイン確認
+    const nickname = localStorage.getItem("nickname");
+    if (!nickname) {
+      alert("⚠️ ログイン情報がありません。トップからログインしてください。");
+      location.href = "/login.html";
+    }
+
+    // クイズ遷移関数
+    function goQuiz(id) {
+      const btn = document.querySelector(`button[data-id="${id}"]`);
+      if (btn.classList.contains("cleared")) return; // クリア済みはクリック無効
+      location.href = `/${id}.html`;
+    }
+
+    // クリア済みクイズを灰色化
+    async function loadClearedQuizzes() {
+      try {
+        const res = await fetch(`/history/${nickname}`);
+        const history = await res.json();
+        const clearedIds = history.map(h => h.questId);
+
+        clearedIds.forEach(id => {
+          if (id.startsWith("quiz")) {
+            const btn = document.querySelector(`button[data-id="${id}"]`);
+            if (btn) {
+              btn.classList.add("cleared");
+              btn.textContent = `${btn.textContent} ✅`;
+            }
+          }
+        });
+      } catch (err) {
+        console.error("履歴取得エラー:", err);
+      }
+    }
+
+    loadClearedQuizzes();
+
+    // ダッシュボードに戻るボタン
+    document.getElementById("backToDashboardBtn").addEventListener("click", () => {
+      location.href = "/dashboard";
+    });
+  </script>
 </body>
 </html>

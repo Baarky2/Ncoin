@@ -50,13 +50,14 @@
   </div>
 
   <div id="resultMsg" style="margin-top:10px;font-weight:bold;"></div>
-  <button id="puzzleClearBtn">謎をクリア！100コイン獲得</button>
+  <button id="puzzleClearBtn">謎をクリア！30コイン獲得</button>
 
   <script>
     // ✅ 設定
-    const correctAnswer = ["かやく" ,"火薬"]; // 正解
+    const correctAnswer = ["火薬", "かやく"]; // 正解
     const questId = "quiz02";
-    const rewardAmount = 100;
+    const rewardAmount = 30;
+    const allQuests = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"]; // 全問リスト
 
     // ログイン確認
     const nickname = localStorage.getItem("nickname");
@@ -70,7 +71,7 @@
     const clearBtn = document.getElementById("puzzleClearBtn");
     const answerInput = document.getElementById("answerInput");
 
-    // サーバーに問い合わせてクリア済みか確認
+    // ✅ サーバーに問い合わせてクリア済みか確認
     async function checkCleared() {
       try {
         const res = await fetch(`/history/${nickname}`);
@@ -89,7 +90,7 @@
 
     checkCleared();
 
-    // 解答ボタン
+    // ✅ 解答ボタン
     checkBtn.addEventListener("click", () => {
       const ans = answerInput.value.trim();
       if (!ans) {
@@ -98,21 +99,20 @@
         return;
       }
 
-if (correctAnswer.includes(ans)) {
-  resultMsg.textContent = "正解です！🎉";
-  resultMsg.style.color = "green";
-  clearBtn.style.display = "inline-block";
-} else {
-  resultMsg.textContent = "不正解です。もう一度考えてみましょう。";
-  resultMsg.style.color = "red";
-}
-
-
+      if (correctAnswer.includes(ans)) {
+        resultMsg.textContent = "正解です！🎉";
+        resultMsg.style.color = "green";
+        clearBtn.style.display = "inline-block";
+      } else {
+        resultMsg.textContent = "不正解です。もう一度考えてみましょう。";
+        resultMsg.style.color = "red";
+      }
     });
 
-    // 謎クリアボタン
+    // ✅ 謎クリアボタン
     clearBtn.addEventListener("click", async () => {
       try {
+        // 🔹 この問題のコイン付与
         const res = await fetch("/quest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -121,10 +121,34 @@ if (correctAnswer.includes(ans)) {
         const data = await res.json();
         if (data.error) {
           alert("コイン付与に失敗: " + data.error);
-        } else {
-          alert(`謎解きクリア！${rewardAmount}コイン獲得しました✨`);
-          location.href = "/dashboard";
+          return;
         }
+
+        alert(`謎解きクリア！${rewardAmount}コイン獲得しました✨`);
+
+        // 🔹 全問クリア確認
+        const histRes = await fetch(`/history/${nickname}`);
+        const history = await histRes.json();
+        const clearedIds = history.map(h => h.questId);
+        const allCleared = allQuests.every(q => clearedIds.includes(q));
+
+        // 🔹 すでにボーナスをもらっていない場合のみ付与
+        const alreadyGotBonus = history.some(h => h.questId === "bonus_all_clear");
+
+        if (allCleared && !alreadyGotBonus) {
+          const bonusRes = await fetch("/quest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nickname, amount: 50, type: "全問クリアボーナス", questId: "bonus_all_clear" })
+          });
+          const bonusData = await bonusRes.json();
+          if (!bonusData.error) {
+            alert("🎊 全問クリアボーナス達成！50コイン獲得しました！ 🎉");
+          }
+        }
+
+        // 🔹 ダッシュボードへ
+        location.href = "/dashboard";
       } catch (err) {
         alert("サーバーエラー: " + err);
       }
