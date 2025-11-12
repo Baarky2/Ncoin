@@ -14,16 +14,16 @@
     <!-- 🔳 QRコード + クイズ -->
     <div class="qr-quiz-section">
       <img id="qrImage" alt="QRコード" />
-      <div class="quiz-buttons">
-        <button id="quizListBtn" onclick="location.href='/quiz_list.html'">クイズ一覧</button>
-      </div>
+
     </div>
+        <button id="goPayBtn" class="pay-btn">QR送金ページへ</button>
 
     <div class="main-content">
       <div class="content">
         <h1 id="welcomeMsg"></h1>
-
-        <button id="goPayBtn" class="pay-btn">QR送金ページへ</button>
+      <div class="quiz-buttons">
+        <button id="quizListBtn" onclick="location.href='/quiz_list.html'">クイズ一覧</button>
+      </div>
 
         <h2>残高: <span id="balance">0</span> コイン</h2>
 
@@ -69,7 +69,7 @@
       // ✅ ログイン確認
       if (!nickname) {
         alert("⚠️ ログイン情報がありません。トップからログインしてください。");
-        location.href = "/login.html";
+        location.href = "/inex.html";
         return;
       }
 

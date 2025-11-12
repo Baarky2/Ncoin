@@ -43,6 +43,14 @@ function loadDB() {
   return dbCache;
 }
 
+// クイズ権限チェック
+app.get("/quiz-rights/:nickname", (req, res) => {
+  const db = loadDB();
+  const user = db[req.params.nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  res.json({ quizRights: user.quizRights || {} });
+});
 // 安全保存（5秒ごと）
 function safeSaveDB(db) {
   dbCache = db;
@@ -65,6 +73,30 @@ process.on("SIGTERM", () => {
   if (dirty) fs.writeFileSync(DB_FILE, JSON.stringify(dbCache, null, 2));
   console.log("✅ 最終データ保存完了");
   process.exit(0);
+});
+// quiz.html を返す前に権限チェック
+app.get("/quiz/:quizId", (req, res) => {
+  const quizId = req.params.quizId; // quiz01 ~ quiz05
+  const nickname = req.query.nickname; // ?nickname=xxxx で渡す想定
+
+  if (!nickname) return res.redirect("/dashboard");
+
+  const db = loadDB();
+  const user = db[nickname];
+  if (!user) return res.redirect("/dashboard");
+
+  // 回答権がない場合は弾く
+  if (!user.quizRights || !user.quizRights[quizId]) {
+    return res.send(`
+      <script>
+        alert("⚠️ このクイズの回答権がありません");
+        window.location.href = "/dashboard";
+      </script>
+    `);
+  }
+
+  // 権限あり → quiz.html を返す
+  res.sendFile(path.join(__dirname, "public/quiz.html"));
 });
 
 // 初期化（必要なら自動生成）
@@ -95,40 +127,72 @@ app.get("/pay.html", (_, res) => res.sendFile(path.join(__dirname, "public/pay.h
 app.post("/auth", (req, res) => {
   const { code } = req.body;
   if (code === process.env.ACCESS_CODE) {
-    res.redirect("/login.html");
+    res.redirect("/index.html");
   } else {
     res.send("<h2>パスコードが違います。<a href='/'>戻る</a></h2>");
   }
 });
 
+// QRコード読み取り用エンドポイント（固定URL）
+// ======== QR読み取りで解答権付与 ========
+app.post("/claim-quiz", (req, res) => {
+  const { quizId } = req.body;
+  const nickname = req.headers["x-nickname"]; // 例: フロント側から送信
+
+  const db = loadDB();
+  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  db[nickname].quizRights = db[nickname].quizRights || {};
+  if (db[nickname].quizRights[quizId]) {
+    return res.json({ message: `すでに ${quizId} の解答権を持っています` });
+  }
+
+  db[nickname].quizRights[quizId] = true;
+  safeSaveDB(db);
+  res.json({ message: `${quizId} の解答権を取得しました！` });
+});
+
 // 👤 ログイン
 app.post("/login", (req, res) => {
-  const { nickname, adminCode, accessCode } = req.body;
+  let { nickname, adminCode, accessCode } = req.body;
 
   // アクセスコードチェック
   if (accessCode !== process.env.ACCESS_CODE) {
     return res.json({ error: "アクセスコードが無効です" });
   }
 
-  const db = loadDB();
-  const isAdmin = adminCode === process.env.ADMIN_CODE;
+  // 管理者判定
+  const isAdmin = adminCode && adminCode === process.env.ADMIN_CODE;
 
-  let finalNickname = nickname;
+  // 管理者コードが入力されているのに正しくない場合は拒否
+  if (adminCode && !isAdmin) {
+    return res.json({ error: "管理者コードが無効です" });
+  }
 
-  // 管理者なら nickname を "admin" 固定
-  if (isAdmin) finalNickname = "admin";
+  // 管理者は nickname を "admin" 固定
+  const finalNickname = isAdmin ? "admin" : nickname;
 
+  // 一般ユーザーの場合ニックネームの妥当性をチェック
   if (!isAdmin && !validateNickname(finalNickname)) {
     return res.json({ error: "無効なニックネームです" });
   }
 
-  // ユーザー登録
-  if (!db[finalNickname]) {
-    db[finalNickname] = { balance: isAdmin ? 10000 : 100, history: [], isAdmin };
-  } else if (isAdmin) {
-    db[finalNickname].isAdmin = true;
-    db[finalNickname].balance = 10000;
-  }
+  const db = loadDB();
+
+// ユーザー登録
+if (!db[finalNickname]) {
+  db[finalNickname] = { 
+    balance: isAdmin ? 10000 : 100, 
+    history: [], 
+    isAdmin,
+    quizRights: {} // ← デフォルトで解答権なし
+  };
+} else if (isAdmin) {
+  db[finalNickname].isAdmin = true;
+  db[finalNickname].balance = 10000;
+  db[finalNickname].quizRights = db[finalNickname].quizRights || {};
+}
+
 
   safeSaveDB(db);
 
@@ -150,22 +214,116 @@ app.get("/balance/:nickname", (req, res) => {
 });
 
 // ======== 🧩 クイズ報酬 ========
-app.post("/quiz01", async (req, res) => {
+app.post("/quiz01", (req, res) => {
   const { nickname, answer } = req.body;
-  const correct = "フルーツ";
+  const db = loadDB();
+  const user = db[nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
 
+  // 回答権チェック
+  if (!user.quizRights.quiz01) {
+    return res.status(403).json({ error: "このクイズの回答権がありません" });
+  }
+
+  const correct = "フルーツ";
   if (answer !== correct) return res.status(400).json({ error: "不正解です" });
 
-  const db = loadDB();
-  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
-
   const reward = 30;
-  db[nickname].balance += reward;
-  db[nickname].history.push({ type: "クイズ報酬", amount: reward, date: new Date() });
+  user.balance += reward;
+  user.history.push({ type: "クイズ報酬", amount: reward, date: new Date() });
   safeSaveDB(db);
   io.emit("update");
 
-  res.json({ balance: db[nickname].balance });
+  res.json({ balance: user.balance });
+});
+app.post("/quiz02", (req, res) => {
+  const { nickname, answer } = req.body;
+  const db = loadDB();
+  const user = db[nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  // 回答権チェック
+  if (!user.quizRights.quiz02) {
+    return res.status(403).json({ error: "このクイズの回答権がありません" });
+  }
+
+  const correct = "フルーツ";
+  if (answer !== correct) return res.status(400).json({ error: "不正解です" });
+
+  const reward = 30;
+  user.balance += reward;
+  user.history.push({ type: "クイズ報酬", amount: reward, date: new Date() });
+  safeSaveDB(db);
+  io.emit("update");
+
+  res.json({ balance: user.balance });
+});
+
+app.post("/quiz03", (req, res) => {
+  const { nickname, answer } = req.body;
+  const db = loadDB();
+  const user = db[nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  // 回答権チェック
+  if (!user.quizRights.quiz03) {
+    return res.status(403).json({ error: "このクイズの回答権がありません" });
+  }
+
+  const correct = "フルーツ";
+  if (answer !== correct) return res.status(400).json({ error: "不正解です" });
+
+  const reward = 30;
+  user.balance += reward;
+  user.history.push({ type: "クイズ報酬", amount: reward, date: new Date() });
+  safeSaveDB(db);
+  io.emit("update");
+
+  res.json({ balance: user.balance });
+});
+app.post("/quiz04", (req, res) => {
+  const { nickname, answer } = req.body;
+  const db = loadDB();
+  const user = db[nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  // 回答権チェック
+  if (!user.quizRights.quiz04) {
+    return res.status(403).json({ error: "このクイズの回答権がありません" });
+  }
+
+  const correct = "フルーツ";
+  if (answer !== correct) return res.status(400).json({ error: "不正解です" });
+
+  const reward = 30;
+  user.balance += reward;
+  user.history.push({ type: "クイズ報酬", amount: reward, date: new Date() });
+  safeSaveDB(db);
+  io.emit("update");
+
+  res.json({ balance: user.balance });
+});
+app.post("/quiz05", (req, res) => {
+  const { nickname, answer } = req.body;
+  const db = loadDB();
+  const user = db[nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+  // 回答権チェック
+  if (!user.quizRights.quiz05) {
+    return res.status(403).json({ error: "このクイズの回答権がありません" });
+  }
+
+  const correct = "フルーツ";
+  if (answer !== correct) return res.status(400).json({ error: "不正解です" });
+
+  const reward = 30;
+  user.balance += reward;
+  user.history.push({ type: "クイズ報酬", amount: reward, date: new Date() });
+  safeSaveDB(db);
+  io.emit("update");
+
+  res.json({ balance: user.balance });
 });
 
 // ======== 🎯 クエスト報酬 ========

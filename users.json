@@ -1,12 +1,15 @@
 {
   "バーキー": {
-    "balance": 100,
-    "history": [],
-    "isAdmin": false
-  },
-  "admin": {
-    "balance": 10000,
-    "history": [],
-    "isAdmin": true
+    "balance": 130,
+    "history": [
+      {
+        "type": "謎解き",
+        "questId": "quiz01",
+        "amount": 30,
+        "date": "2025-11-12T06:04:06.591Z"
+      }
+    ],
+    "isAdmin": "",
+    "quizRights": {}
   }
 }

@@ -191,7 +191,7 @@ input {
   }
 
   .qr-quiz-section img { width: 180px; height: 180px; }
-  .quiz-buttons { flex-direction: column; width: 50%; }
+  .quiz-buttons { flex-direction: column; width: 100%; }
   .quiz-buttons button { font-size: 1.2rem; padding: 14px 28px; width: 100%; }
 
   /* メイン & ランキング縦配置 */

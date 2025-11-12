@@ -12,7 +12,6 @@
       text-align: center;
       padding: 30px;
       color: #333;
-      position: relative;
       min-height: 100vh;
     }
 
@@ -27,19 +26,19 @@
       align-items: center;
     }
 
-    button {
+    button.quizBtn {
       width: 400px;
       padding: 10px;
       border: none;
       border-radius: 8px;
-      background: #28a745; /* 緑＝未クリア */
+      background: #28a745; /* 緑＝選択可能 */
       color: white;
       font-size: 16px;
       cursor: pointer;
       transition: background 0.2s ease;
     }
 
-    button:hover {
+    button.quizBtn:hover {
       background: #218838;
     }
 
@@ -80,11 +79,11 @@
   <div class="container">
     <h1>クイズ一覧</h1>
     <div class="quiz-list">
-      <button data-id="quiz01" onclick="goQuiz('quiz01')">Quiz01</button>
-      <button data-id="quiz02" onclick="goQuiz('quiz02')">Quiz02</button>
-      <button data-id="quiz03" onclick="goQuiz('quiz03')">Quiz03</button>
-      <button data-id="quiz04" onclick="goQuiz('quiz04')">Quiz04</button>
-      <button data-id="quiz05" onclick="goQuiz('quiz05')">Quiz05</button>
+      <button class="quizBtn" data-id="quiz01">Quiz01</button>
+      <button class="quizBtn" data-id="quiz02">Quiz02</button>
+      <button class="quizBtn" data-id="quiz03">Quiz03</button>
+      <button class="quizBtn" data-id="quiz04">Quiz04</button>
+      <button class="quizBtn" data-id="quiz05">Quiz05</button>
     </div>
   </div>
 
@@ -100,26 +99,40 @@
     }
 
     // クイズ遷移関数
-    function goQuiz(id) {
-      const btn = document.querySelector(`button[data-id="${id}"]`);
-      if (btn.classList.contains("cleared")) return; // クリア済みはクリック無効
-      location.href = `/${id}.html`;
-    }
+function goQuiz(id) {
+  const nickname = localStorage.getItem("nickname");
+  if (!nickname) return location.href = "/login.html";
+
+  const btn = document.querySelector(`button[data-id="${id}"]`);
+  if (btn.disabled) return alert("回答権がありません");
+
+  // nickname をクエリパラメータとして渡す
+  window.location.href = `/quiz/${id}?nickname=${encodeURIComponent(nickname)}`;
+}
+
+    // 左下ボタン
+    document.getElementById("backToDashboardBtn").addEventListener("click", () => {
+      location.href = "/dashboard";
+    });
+
+    // クイズボタン初期化
+    document.querySelectorAll(".quizBtn").forEach(btn => {
+      btn.addEventListener("click", () => goQuiz(btn.dataset.id));
+    });
 
     // クリア済みクイズを灰色化
     async function loadClearedQuizzes() {
       try {
-        const res = await fetch(`/history/${nickname}`);
+        const res = await fetch(`/history/${encodeURIComponent(nickname)}`);
         const history = await res.json();
-        const clearedIds = history.map(h => h.questId);
+        const clearedIds = history.map(h => h.questId).filter(id => id && id.startsWith("quiz"));
 
         clearedIds.forEach(id => {
-          if (id.startsWith("quiz")) {
-            const btn = document.querySelector(`button[data-id="${id}"]`);
-            if (btn) {
-              btn.classList.add("cleared");
-              btn.textContent = `${btn.textContent} ✅`;
-            }
+          const btn = document.querySelector(`button[data-id="${id}"]`);
+          if (btn) {
+            btn.classList.add("cleared");
+            btn.textContent += " ✅";
+            btn.disabled = true;
           }
         });
       } catch (err) {
@@ -127,12 +140,38 @@
       }
     }
 
-    loadClearedQuizzes();
+    // 回答権のないクイズを灰色・未開放化
+    async function loadQuizRights() {
+      try {
+        const res = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
+        const { quizRights } = await res.json();
 
-    // ダッシュボードに戻るボタン
-    document.getElementById("backToDashboardBtn").addEventListener("click", () => {
-      location.href = "/dashboard";
-    });
+        document.querySelectorAll(".quizBtn").forEach(btn => {
+          const quizId = btn.dataset.id;
+          if (!quizRights[quizId]) {
+            btn.disabled = true;
+
+            // 「未開放」ラベル追加
+            const label = document.createElement("span");
+            label.textContent = " (未開放)";
+            label.style.color = "red";
+            btn.appendChild(label);
+
+            // ボタン灰色化
+            btn.style.backgroundColor = "#ccc";
+            btn.style.color = "#666";
+            btn.style.cursor = "not-allowed";
+          }
+        });
+      } catch (err) {
+        console.error("回答権取得エラー:", err);
+      }
+    }
+
+    // 初期化
+    loadClearedQuizzes();
+    loadQuizRights();
+
   </script>
 </body>
 </html>

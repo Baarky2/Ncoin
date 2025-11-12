@@ -2,13 +2,93 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>アクセス認証</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>アクセスコードを入力してください</h2>
-  <form method="POST" action="/auth">
-    <input type="password" name="code" placeholder="アクセスコード" required>
-    <button type="submit">送信</button>
-  </form>
+  <div class="login-container">
+    <h1>ログイン</h1>
+
+    <input type="text" id="nickname" placeholder="ニックネーム" />
+
+    <div style="margin-top:10px;">
+      <span id="adminToggle" style="text-decoration: underline; color: blue; cursor: pointer;">
+        管理者の方は
+      </span>
+    </div>
+
+    <div id="adminCodeDiv" style="display:none; margin-top:10px;">
+      <input type="password" id="adminCode" placeholder="管理者コード" />
+    </div>
+
+    <input type="password" id="accessCode" placeholder="アクセスコード" />
+    <div style="margin-top:10px;">
+      <button id="loginBtn">ログイン</button>
+    </div>
+  </div>
+
+<script>
+const adminToggle = document.getElementById("adminToggle");
+const adminCodeDiv = document.getElementById("adminCodeDiv");
+const loginBtn = document.getElementById("loginBtn");
+const nicknameInput = document.getElementById("nickname");
+
+// 管理者コード欄の表示切替
+adminToggle.addEventListener("click", () => {
+  if (adminCodeDiv.style.display === "none") {
+    adminCodeDiv.style.display = "block";
+    nicknameInput.value = "";
+    nicknameInput.disabled = true; // ユーザー名を入力不可
+  } else {
+    adminCodeDiv.style.display = "none";
+    nicknameInput.disabled = false; // ユーザー名入力可能
+  }
+});
+
+loginBtn.addEventListener("click", async () => {
+  let nickname = nicknameInput.value.trim();
+  const adminCode = adminCodeDiv.style.display === "block" ? document.getElementById("adminCode").value : "";
+  const accessCode = document.getElementById("accessCode").value.trim();
+
+  // アクセスコード必須
+  if (!accessCode) return alert("アクセスコードを入力してください");
+
+  // 管理者ならnicknameは "admin" 固定
+  if (adminCode) nickname = "admin";
+
+  if (!nickname) return alert("ニックネームを入力してください");
+
+  try {
+    // 既存ユーザー確認（管理者以外）
+    if (!adminCode) {
+      const resCheck = await fetch(`/user-exists/${encodeURIComponent(nickname)}`);
+      const { exists } = await resCheck.json();
+      if (exists) {
+        const proceed = confirm("すでに使われていますがこのユーザー名を使いますか？");
+        if (!proceed) return;
+      }
+    }
+
+    // ログイン処理
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname, adminCode, accessCode })
+    });
+    const data = await res.json();
+
+    if (data.error) return alert(data.error);
+
+    localStorage.setItem("nickname", data.nickname);
+    localStorage.setItem("isAdmin", data.isAdmin);
+    if (data.isAdmin) localStorage.setItem("adminCode", adminCode);
+
+    location.href = "/dashboard";
+  } catch (e) {
+    alert("ログインエラー: " + e.message);
+  }
+});
+</script>
 </body>
 </html>

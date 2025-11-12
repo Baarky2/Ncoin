@@ -1,5 +1,5 @@
 const nickname = localStorage.getItem('nickname');
-if (!nickname) window.location.href = 'login.html';
+if (!nickname) window.location.href = 'index.html';
 
 document.getElementById('userName').textContent = nickname;
 
