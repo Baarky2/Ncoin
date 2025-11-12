@@ -95,20 +95,21 @@
     const nickname = localStorage.getItem("nickname");
     if (!nickname) {
       alert("⚠️ ログイン情報がありません。トップからログインしてください。");
-      location.href = "/login.html";
+      location.href = "/index.html";
     }
 
     // クイズ遷移関数
 function goQuiz(id) {
   const nickname = localStorage.getItem("nickname");
-  if (!nickname) return location.href = "/login.html";
+  if (!nickname) return location.href = "/index.html";
 
   const btn = document.querySelector(`button[data-id="${id}"]`);
   if (btn.disabled) return alert("回答権がありません");
 
-  // nickname をクエリパラメータとして渡す
-  window.location.href = `/quiz/${id}?nickname=${encodeURIComponent(nickname)}`;
+  // nickname をクエリパラメータとして、各HTMLに直接飛ぶ
+  window.location.href = `/${id}.html?nickname=${encodeURIComponent(nickname)}`;
 }
+
 
     // 左下ボタン
     document.getElementById("backToDashboardBtn").addEventListener("click", () => {
