@@ -1,159 +1,198 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
   <div class="container">
-    <!-- 🔳 QRコード + Quizボタン -->
+    <!-- 🔳 QRコード + クイズ -->
     <div class="qr-quiz-section">
-      <img id="qrImage" alt="QRコード">
+      <img id="qrImage" alt="QRコード" />
       <div class="quiz-buttons">
-  <button id="quizListBtn" onclick="location.href='/quiz_list.html'">クイズ一覧</button>
-
+        <button id="quizListBtn" onclick="location.href='/quiz_list.html'">クイズ一覧</button>
       </div>
     </div>
 
     <div class="main-content">
-      <!-- 💰 メイン操作 -->
       <div class="content">
-        <h1 id="welcome"></h1>
+        <h1 id="welcomeMsg"></h1>
+
         <button id="goPayBtn" class="pay-btn">QR送金ページへ</button>
 
         <h2>残高: <span id="balance">0</span> コイン</h2>
 
-        <!--<h2>クエスト報酬</h2>
-        <input type="number" id="questAmount" placeholder="獲得コイン">
-        <button id="questBtn">報酬を獲得</button>-->
-
         <h2>送金</h2>
-        <input type="text" id="sendTo" placeholder="送金先のニックネーム">
-        <input type="number" id="sendAmount" placeholder="送金額">
+        <input type="text" id="sendTo" placeholder="送金先のニックネーム" />
+        <input type="number" id="sendAmount" placeholder="送金額" />
         <button id="sendBtn">送金する</button>
 
         <h2>履歴</h2>
         <ul id="historyList"></ul>
       </div>
 
-      <!-- 🏆 ランキング -->
       <div class="ranking">
         <h2>ランキング</h2>
         <ol id="rankingList"></ol>
       </div>
     </div>
+    <!-- 🧭 アドミンパネル（アドミン専用） -->
+<div id="adminPanel" style="display:none; margin-top:40px;">
+  <h2>🧭 管理者メニュー</h2>
+
+  <div>
+    <h3>全員にコイン配布</h3>
+    <input type="number" id="distributeAmount" placeholder="配布額" />
+    <button id="distributeBtn">全員に配布</button>
   </div>
 
-<script>
-      // ログイン確認
-    const nickname = localStorage.getItem("nickname");
-    if (!nickname) {
-      alert("⚠️ ログイン情報がありません。トップからログインしてください。");
-      location.href = "/login.html";
-    }
+  <div style="margin-top:20px;">
+    <h3>特定ユーザー削除</h3>
+    <input type="text" id="deleteUser" placeholder="削除するユーザー名" />
+    <button id="deleteBtn">削除する</button>
+  </div>
+</div>
 
-    const resultMsg = document.getElementById("resultMsg");
-    const checkBtn = document.getElementById("checkAnswerBtn");
-    const clearBtn = document.getElementById("puzzleClearBtn");
-    const answerInput = document.getElementById("answerInput");
+  </div>
 
-window.addEventListener("load", async () => {
-  const socket = io();
-  const nickname = localStorage.getItem("nickname");
-  if (!nickname) {
-    alert("ログイン情報がありません");
-    location.href = "/login.html";
-    return;
-  }
+  <script>
+    window.addEventListener("load", async () => {
+      const socket = io();
+      const nickname = localStorage.getItem("nickname");
+      const isAdmin = localStorage.getItem("isAdmin") === "true";
 
-  document.getElementById("welcome").textContent = `ようこそ ${nickname} さん`;
-  const balanceEl = document.getElementById("balance");
-  const rankingEl = document.getElementById("rankingList");
-  const historyEl = document.getElementById("historyList");
+      // ✅ ログイン確認
+      if (!nickname) {
+        alert("⚠️ ログイン情報がありません。トップからログインしてください。");
+        location.href = "/login.html";
+        return;
+      }
 
-  // ✅ QRコード生成
-  try {
-    const qrUrl = `${location.origin}/pay.html?from=${encodeURIComponent(nickname)}`;
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, { width: 300 });
-    document.getElementById("qrImage").src = qrDataUrl;
-  } catch (e) {
-    console.error("QRコード生成に失敗:", e);
-  }
+      // ✅ 表示更新
+      document.getElementById("welcomeMsg").textContent =
+        isAdmin ? "ようこそ！admin！" : `ようこそ！${nickname}！`;
 
-  async function fetchBalance() {
-    const res = await fetch(`/balance/${nickname}`);
-    const data = await res.json();
-    balanceEl.textContent = data.balance;
-  }
+      const balanceEl = document.getElementById("balance");
+      const rankingEl = document.getElementById("rankingList");
+      const historyEl = document.getElementById("historyList");
 
-  async function fetchRanking() {
-    const res = await fetch("/ranking");
-    const ranking = await res.json();
-    rankingEl.innerHTML = "";
-    ranking.forEach(u => {
-      const li = document.createElement("li");
-      li.textContent = `${u.nickname}: ${u.balance} コイン`;
-      rankingEl.appendChild(li);
-    });
-  }
+      // ✅ QRコード生成
+      try {
+        const qrUrl = `${location.origin}/pay.html?from=${encodeURIComponent(nickname)}`;
+        const qrDataUrl = await QRCode.toDataURL(qrUrl, { width: 300 });
+        document.getElementById("qrImage").src = qrDataUrl;
+      } catch (e) {
+        console.error("QRコード生成に失敗:", e);
+      }
 
-  async function fetchHistory() {
-    const res = await fetch(`/history/${nickname}`);
-    const history = await res.json();
-    historyEl.innerHTML = "";
-    history.forEach(h => {
-      const li = document.createElement("li");
-      let text = `[${h.date.split("T")[0]}] `;
-      if (h.type === "クエスト報酬") text += `クエスト報酬: +${h.amount}`;
-      else if (h.type === "送金") text += `送金: -${h.amount} → ${h.to}`;
-      else if (h.type === "受取") text += `受取: +${h.amount} ← ${h.from}`;
-      li.textContent = text;
-      historyEl.appendChild(li);
-    });
-  }
+      async function fetchBalance() {
+        const res = await fetch(`/balance/${nickname}`);
+        const data = await res.json();
+        balanceEl.textContent = data.balance;
+      }
 
-  fetchBalance(); fetchRanking(); fetchHistory();
+      async function fetchRanking() {
+        const res = await fetch("/ranking");
+        const ranking = await res.json();
+        rankingEl.innerHTML = "";
+        ranking.forEach(u => {
+          const li = document.createElement("li");
+          li.textContent = `${u.nickname}: ${u.balance} コイン`;
+          rankingEl.appendChild(li);
+        });
+      }
 
-  socket.on("update", () => {
-    fetchBalance(); fetchRanking(); fetchHistory();
+      async function fetchHistory() {
+        const res = await fetch(`/history/${nickname}`);
+        const history = await res.json();
+        historyEl.innerHTML = "";
+        history.forEach(h => {
+          const li = document.createElement("li");
+          let text = `[${h.date.split("T")[0]}] `;
+          if (h.type === "クエスト報酬") text += `クエスト報酬: +${h.amount}`;
+          else if (h.type === "送金") text += `送金: -${h.amount} → ${h.to}`;
+          else if (h.type === "受取") text += `受取: +${h.amount} ← ${h.from}`;
+          else if (h.type === "クイズ正解") text += `クイズ報酬: +${h.amount}`;
+          li.textContent = text;
+          historyEl.appendChild(li);
+        });
+      }
+
+      fetchBalance();
+      fetchRanking();
+      fetchHistory();
+
+      socket.on("update", () => {
+        fetchBalance();
+        fetchRanking();
+        fetchHistory();
+      });
+
+      // ✅ 送金処理
+      document.getElementById("sendBtn").addEventListener("click", async () => {
+        const to = document.getElementById("sendTo").value.trim();
+        const amount = Number(document.getElementById("sendAmount").value);
+        if (!to || !amount) return alert("送金先と金額を入力してください");
+
+        const res = await fetch("/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from: nickname, to, amount }),
+        });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        fetchBalance();
+        fetchHistory();
+        fetchRanking();
+      });
+// ====== 🧭 アドミン専用メニュー ======
+const adminPanel = document.getElementById("adminPanel");
+if (isAdmin) adminPanel.style.display = "block";
+
+document.getElementById("distributeBtn")?.addEventListener("click", async () => {
+  const amount = Number(document.getElementById("distributeAmount").value);
+  if (!amount) return alert("金額を入力してください");
+
+  const res = await fetch("/admin/distribute", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nickname,
+      adminCode: localStorage.getItem("adminCode"), // ローカル保存されたコード
+      amount,
+    }),
   });
-
-  document.getElementById("questBtn").addEventListener("click", async () => {
-    const amount = Number(document.getElementById("questAmount").value);
-    if (!amount) return alert("金額を入力してください");
-    const res = await fetch("/quest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname, amount })
-    });
-    const data = await res.json();
-    if (data.error) alert(data.error);
-    fetchBalance(); fetchHistory(); fetchRanking();
-  });
-
-  document.getElementById("sendBtn").addEventListener("click", async () => {
-    const to = document.getElementById("sendTo").value;
-    const amount = Number(document.getElementById("sendAmount").value);
-    if (!to || !amount) return alert("送金先と金額を入力してください");
-    const res = await fetch("/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: nickname, to, amount })
-    });
-    const data = await res.json();
-    if (data.error) alert(data.error);
-    fetchBalance(); fetchHistory(); fetchRanking();
-  });
-
-  document.getElementById("goPayBtn").addEventListener("click", () => {
-    location.href = `/pay.html?from=${encodeURIComponent(nickname)}`;
-  });
+  const data = await res.json();
+  alert(data.message || data.error);
 });
-</script>
+
+document.getElementById("deleteBtn")?.addEventListener("click", async () => {
+  const target = document.getElementById("deleteUser").value.trim();
+  if (!target) return alert("ユーザー名を入力してください");
+
+  const res = await fetch("/admin/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nickname,
+      adminCode: localStorage.getItem("adminCode"),
+      target,
+    }),
+  });
+  const data = await res.json();
+  alert(data.message || data.error);
+});
+
+      // ✅ QR送金ページへ
+      document.getElementById("goPayBtn").addEventListener("click", () => {
+        location.href = `/pay.html?from=${encodeURIComponent(nickname)}`;
+      });
+    });
+  </script>
 </body>
 </html>

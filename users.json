@@ -1,1 +1,12 @@
-{}
+{
+  "バーキー": {
+    "balance": 100,
+    "history": [],
+    "isAdmin": false
+  },
+  "admin": {
+    "balance": 10000,
+    "history": [],
+    "isAdmin": true
+  }
+}
