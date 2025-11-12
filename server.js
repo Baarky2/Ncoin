@@ -136,8 +136,7 @@ app.post("/auth", (req, res) => {
 // QRコード読み取り用エンドポイント（固定URL）
 // ======== QR読み取りで解答権付与 ========
 app.post("/claim-quiz", (req, res) => {
-  const { quizId } = req.body;
-  const nickname = req.headers["x-nickname"]; // 例: フロント側から送信
+  const { nickname, quizId } = req.body;  // JSONから取得
 
   const db = loadDB();
   if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
@@ -151,6 +150,7 @@ app.post("/claim-quiz", (req, res) => {
   safeSaveDB(db);
   res.json({ message: `${quizId} の解答権を取得しました！` });
 });
+
 
 // 👤 ログイン
 app.post("/login", (req, res) => {
