@@ -134,9 +134,6 @@
 
         // 🔹 すでにボーナスをもらっていない場合のみ付与
         const alreadyGotBonus = history.some(h => h.questId === "bonus_all_clear");
-if (data.exUnlocked) {
-  alert("🎉 EX問題出現！");
-}
 
         if (allCleared && !alreadyGotBonus) {
           const bonusRes = await fetch("/quest", {
@@ -147,6 +144,8 @@ if (data.exUnlocked) {
           const bonusData = await bonusRes.json();
           if (!bonusData.error) {
             alert("🎊 全問クリアボーナス達成！50コイン獲得しました！ 🎉");
+              alert("🎉 EX問題出現！");
+
           }
         }
 

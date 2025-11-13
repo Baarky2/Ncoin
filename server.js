@@ -64,34 +64,34 @@ function safeSaveDB(db) {
 app.get("/quiz-rights/:nickname", (req, res) => {
   const db = loadDB();
   const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({
-    error: "ユーザーが存在しません"
-  });
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
 
   const quizRights = user.quizRights || {};
 
-  // ノーマル全クリア判定
-  const allNormalCleared = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"].every(q => quizRights[q]);
+  // ノーマルクイズの正解済みID
+  const normalQuizzes = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"];
+  const clearedNormal = user.history
+    .map(h => h.questId)
+    .filter(id => id && normalQuizzes.includes(id));
+
+  // すべて正解済みかチェック
+  const allNormalCleared = normalQuizzes.every(q => clearedNormal.includes(q));
 
   let exQuizRights = {};
   if (allNormalCleared) {
-    // EXクイズを順番に解放
+    // EXクイズの権利を付与（既にクリア済みか、全クリア済みなら解放）
     const exIds = ["ex01", "ex02", "ex03"];
-    for (let i = 0; i < exIds.length; i++) {
-      const prevCleared = i === 0 || quizRights[exIds[i - 1]]; // 直前EXクリア済みなら解放
-      if (!quizRights[exIds[i]] && prevCleared) {
-        exQuizRights[exIds[i]] = true; // 解放
-        break; // 1つずつ解放
-      } else if (quizRights[exIds[i]]) {
-        exQuizRights[exIds[i]] = true; // すでにクリア済み
+    exIds.forEach((id, i) => {
+      const prevCleared = i === 0 || user.history.some(h => h.questId === exIds[i - 1]);
+      if (!user.quizRights[id] && prevCleared) {
+        exQuizRights[id] = true; // 解放
+      } else if (user.quizRights[id]) {
+        exQuizRights[id] = true; // すでにクリア済み
       }
-    }
+    });
   }
 
-  res.json({
-    quizRights,
-    exQuizRights
-  });
+  res.json({ quizRights, exQuizRights });
 });
 
 

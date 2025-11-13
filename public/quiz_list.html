@@ -88,9 +88,14 @@
 
 <div class="quiz-list" id="exQuizzes" style="display:none;">
   <h2>EXクイズ</h2>
-  <button class="exQuizBtn" data-id="ex01">EX01</button>
-  <button class="exQuizBtn" data-id="ex02">EX02</button>
-  <button class="exQuizBtn" data-id="ex03">EX03</button>
+<button class="exQuizBtn" data-id="ex01">EX01</button>
+<button class="exQuizBtn" data-id="ex02">EX02</button>
+<button class="exQuizBtn" data-id="ex03">EX03</button>
+<button class="exQuizBtn" data-id="ex04">EX04</button>
+<button class="exQuizBtn" data-id="ex05">EX05</button>
+<button class="exQuizBtn" data-id="ex06">EX06</button>
+<button class="exQuizBtn" data-id="ex07">EX07</button>
+
 </div>
 
 
@@ -115,9 +120,19 @@ function goQuiz(id) {
   const btn = document.querySelector(`button[data-id="${id}"]`);
   if (btn.disabled) return alert("回答権がありません");
 
-  // nickname をクエリパラメータとして、各HTMLに直接飛ぶ
-  window.location.href = `/${id}.html?nickname=${encodeURIComponent(nickname)}`;
+  // id に応じて HTML を分ける
+let page = "";
+if (id.startsWith("quiz")) {
+  page = `${id}.html`;
+} else if (id.startsWith("ex")) {
+  // id="ex01" → EX_quiz01.html に飛ばす
+  page = `EX_quiz${id.slice(2)}.html`;
 }
+
+
+  window.location.href = `${page}?nickname=${encodeURIComponent(nickname)}`;
+}
+
 
 
     // 左下ボタン
@@ -125,10 +140,15 @@ function goQuiz(id) {
       location.href = "/dashboard";
     });
 
-    // クイズボタン初期化
-    document.querySelectorAll(".quizBtn").forEach(btn => {
-      btn.addEventListener("click", () => goQuiz(btn.dataset.id));
-    });
+
+// ノーマルクイズ
+document.querySelectorAll(".quizBtn").forEach(btn => {
+  btn.addEventListener("click", () => goQuiz(btn.dataset.id));
+});
+// EXクイズ
+document.querySelectorAll(".exQuizBtn").forEach(btn => {
+  btn.addEventListener("click", () => goQuiz(btn.dataset.id));
+});
 
     // クリア済みクイズを灰色化
     async function loadClearedQuizzes() {
@@ -188,17 +208,25 @@ document.querySelectorAll(".quizBtn").forEach(btn => {
 // EX問題解放チェック
 async function checkExUnlocked() {
   try {
-    const res = await fetch(`/get-user/${encodeURIComponent(nickname)}`);
-    const user = await res.json();
-    const exUnlocked = user.quizPermissions && user.quizPermissions["ex01"];
+    // ユーザー履歴を取得
+  const historyRes = await fetch(`/history/${encodeURIComponent(nickname)}`);
+  const history = await historyRes.json();
+  const clearedIds = history.map(h => h.questId || "").filter(id => id.startsWith("quiz"));
+  const normalQuizIds = Array.from(document.querySelectorAll(".quizBtn")).map(b => b.dataset.id);
+  const allCleared = normalQuizIds.every(id => clearedIds.includes(id));
 
-    if (exUnlocked) {
+  document.getElementById("exQuizzes").style.display = allCleared ? "block" : "none";
+
+    if (allCleared) {
       document.getElementById("exQuizzes").style.display = "block";
+    } else {
+      document.getElementById("exQuizzes").style.display = "none";
     }
   } catch (err) {
     console.error("EXチェックエラー:", err);
   }
 }
+
 async function loadQuizButtons() {
   try {
     const historyRes = await fetch(`/history/${encodeURIComponent(nickname)}`);
@@ -208,41 +236,49 @@ async function loadQuizButtons() {
     const rightsRes = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
     const { quizRights, exQuizRights } = await rightsRes.json();
 
-    // ノーマルクイズ
-    document.querySelectorAll(".quizBtn").forEach(btn => {
-      const quizId = btn.dataset.id;
-      btn.classList.remove("locked", "available", "cleared");
+// ノーマルクイズ
+document.querySelectorAll(".quizBtn").forEach(btn => {
+  const quizId = btn.dataset.id;
+  btn.classList.remove("locked", "available", "cleared");
 
-      if (clearedIds.includes(quizId)) {
-        btn.classList.add("cleared"); // 履歴にある＝クリア済み
-        btn.textContent = quizId.toUpperCase() + " ✅";
-        btn.disabled = true;
-      } else if (quizRights[quizId]) {
-        btn.classList.add("available"); // 回答権あり
-        btn.disabled = false;
-      } else {
-        btn.classList.add("locked"); // 未解放
-        btn.disabled = true;
-      }
-    });
+  if (clearedIds.includes(quizId)) {
+    // ✅ 正解済み
+    btn.classList.add("cleared");
+    btn.textContent = quizId.toUpperCase() + " ✅";
+    btn.disabled = true;
+  } else if (quizRights[quizId]) {
+    // 回答権あり
+    btn.classList.add("available");
+    btn.disabled = false;
+    btn.textContent = quizId.toUpperCase();
+  } else {
+    // 未解放
+    btn.classList.add("locked");
+    btn.disabled = true;
+    btn.textContent = quizId.toUpperCase();
+  }
+});
 
-    // EXクイズ
-    document.querySelectorAll(".exQuizBtn").forEach(btn => {
-      const quizId = btn.dataset.id;
-      btn.classList.remove("locked", "available", "cleared");
+// EXクイズも同様
+document.querySelectorAll(".exQuizBtn").forEach(btn => {
+  const quizId = btn.dataset.id;
+  btn.classList.remove("locked", "available", "cleared");
 
-      if (exQuizRights && exQuizRights[quizId] && !clearedIds.includes(quizId)) {
-        btn.classList.add("available"); // 回答権あり
-        btn.disabled = false;
-      } else if (clearedIds.includes(quizId)) {
-        btn.classList.add("cleared");
-        btn.textContent = quizId.toUpperCase() + " ✅";
-        btn.disabled = true;
-      } else {
-        btn.classList.add("locked");
-        btn.disabled = true;
-      }
-    });
+  if (clearedIds.includes(quizId)) {
+    btn.classList.add("cleared"); // ✅ 正解済み
+    btn.textContent = quizId.toUpperCase() + " ✅";
+    btn.disabled = true;
+  } else if (exQuizRights && exQuizRights[quizId]) {
+    btn.classList.add("available"); // 回答権あり
+    btn.disabled = false;
+    btn.textContent = quizId.toUpperCase();
+  } else {
+    btn.classList.add("locked"); // 未開放
+    btn.disabled = true;
+    btn.textContent = quizId.toUpperCase();
+  }
+});
+
 
     // EXクイズ表示
     const anyExAvailable = Object.values(exQuizRights || {}).some(v => v);
