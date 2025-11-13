@@ -34,30 +34,36 @@
 
   <script>
     async function claimQuiz() {
-      const nickname = localStorage.getItem("nickname");
+      // nickname はまず localStorage から取得
+      let nickname = localStorage.getItem("nickname");
+
+      // QR URL にも nickname が入っていれば優先
+      const params = new URLSearchParams(window.location.search);
+      const quizId = params.get("quizId");
+      const nicknameFromQR = params.get("nickname");
+      if (nicknameFromQR) nickname = nicknameFromQR;
+
       if (!nickname) {
         alert("⚠️ ログイン情報がありません。ログインしてください。");
         window.location.href = "/index.html";
         return;
       }
 
-      // QRから取得するquizId
-      const params = new URLSearchParams(window.location.search);
-      const quizId = params.get("quizId");
       if (!quizId) {
         document.getElementById("status").textContent = "❌ QRコードが無効です";
         return;
       }
 
       try {
-const res = await fetch("/claim-quiz", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ 
-    nickname: params.get("nickname"), 
-    quizId: params.get("quizId") 
-  })
-});
+        const res = await fetch("/claim-quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nickname, quizId })
+        });
+
+        // JSON で受け取れるかチェック
+        if (!res.ok) throw new Error("サーバーエラー");
+
         const data = await res.json();
 
         if (data.error) {
@@ -78,7 +84,7 @@ const res = await fetch("/claim-quiz", {
     });
 
     // ページ読み込み時に自動で解放
-    claimQuiz();
+    window.addEventListener("DOMContentLoaded", claimQuiz);
   </script>
 </body>
 </html>
