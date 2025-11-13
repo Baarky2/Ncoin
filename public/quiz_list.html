@@ -205,20 +205,24 @@ async function checkExUnlocked() {
 }
 async function loadQuizButtons() {
   try {
-    const res = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
-    const { quizRights, exQuizRights } = await res.json();
+    const historyRes = await fetch(`/history/${encodeURIComponent(nickname)}`);
+    const history = await historyRes.json();
+    const clearedIds = history.map(h => h.questId).filter(id => id && id.startsWith("quiz"));
+
+    const rightsRes = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
+    const { quizRights, exQuizRights } = await rightsRes.json();
 
     // ノーマルクイズ
     document.querySelectorAll(".quizBtn").forEach(btn => {
       const quizId = btn.dataset.id;
       btn.classList.remove("locked", "available", "cleared");
 
-      if (quizRights[quizId] === true) {
-        btn.classList.add("cleared"); // クリア済み
+      if (clearedIds.includes(quizId)) {
+        btn.classList.add("cleared"); // 履歴にある＝クリア済み
         btn.textContent = quizId.toUpperCase() + " ✅";
         btn.disabled = true;
-      } else if (quizRights[quizId] === false) {
-        btn.classList.add("available"); // 回答可能
+      } else if (quizRights[quizId]) {
+        btn.classList.add("available"); // 回答権あり
         btn.disabled = false;
       } else {
         btn.classList.add("locked"); // 未解放
@@ -231,11 +235,15 @@ async function loadQuizButtons() {
       const quizId = btn.dataset.id;
       btn.classList.remove("locked", "available", "cleared");
 
-      if (exQuizRights && exQuizRights[quizId] === true) {
-        btn.classList.add("available"); // 解放済み
+      if (exQuizRights && exQuizRights[quizId] && !clearedIds.includes(quizId)) {
+        btn.classList.add("available"); // 回答権あり
         btn.disabled = false;
+      } else if (clearedIds.includes(quizId)) {
+        btn.classList.add("cleared");
+        btn.textContent = quizId.toUpperCase() + " ✅";
+        btn.disabled = true;
       } else {
-        btn.classList.add("locked"); // 未解放
+        btn.classList.add("locked");
         btn.disabled = true;
       }
     });
@@ -248,6 +256,7 @@ async function loadQuizButtons() {
     console.error("回答権取得エラー:", err);
   }
 }
+
 
 // 初期化
 loadQuizButtons();
