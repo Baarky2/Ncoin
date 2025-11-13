@@ -77,14 +77,23 @@
 
 <body>
   <div class="container">
-    <h1>クイズ一覧</h1>
-    <div class="quiz-list">
-      <button class="quizBtn" data-id="quiz01">Quiz01</button>
-      <button class="quizBtn" data-id="quiz02">Quiz02</button>
-      <button class="quizBtn" data-id="quiz03">Quiz03</button>
-      <button class="quizBtn" data-id="quiz04">Quiz04</button>
-      <button class="quizBtn" data-id="quiz05">Quiz05</button>
-    </div>
+<div class="quiz-list" id="normalQuizzes">
+  <h2>ノーマルクイズ</h2>
+  <button class="quizBtn" data-id="quiz01">Quiz01</button>
+  <button class="quizBtn" data-id="quiz02">Quiz02</button>
+  <button class="quizBtn" data-id="quiz03">Quiz03</button>
+  <button class="quizBtn" data-id="quiz04">Quiz04</button>
+  <button class="quizBtn" data-id="quiz05">Quiz05</button>
+</div>
+
+<div class="quiz-list" id="exQuizzes" style="display:none;">
+  <h2>EXクイズ</h2>
+  <button class="exQuizBtn" data-id="ex01">EX01</button>
+  <button class="exQuizBtn" data-id="ex02">EX02</button>
+  <button class="exQuizBtn" data-id="ex03">EX03</button>
+</div>
+
+
   </div>
 
   <!-- 左下固定：ダッシュボードに戻る -->
@@ -142,32 +151,60 @@ function goQuiz(id) {
     }
 
     // 回答権のないクイズを灰色・未開放化
-    async function loadQuizRights() {
-      try {
-        const res = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
-        const { quizRights } = await res.json();
+async function loadQuizRights() {
+  try {
+    const res = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
+    const { quizRights, exQuizRights } = await res.json();
 
-        document.querySelectorAll(".quizBtn").forEach(btn => {
-          const quizId = btn.dataset.id;
-          if (!quizRights[quizId]) {
-            btn.disabled = true;
-
-            // 「未開放」ラベル追加
-            const label = document.createElement("span");
-            label.textContent = " (未開放)";
-            label.style.color = "red";
-            btn.appendChild(label);
-
-            // ボタン灰色化
-            btn.style.backgroundColor = "#ccc";
-            btn.style.color = "#666";
-            btn.style.cursor = "not-allowed";
-          }
-        });
-      } catch (err) {
-        console.error("回答権取得エラー:", err);
+    // ノーマルクイズ
+    document.querySelectorAll(".quizBtn").forEach(btn => {
+      const quizId = btn.dataset.id;
+      if (!quizRights[quizId]) {
+        btn.disabled = true;
+        btn.style.backgroundColor = "#ccc";
+        btn.style.color = "#666";
+        const label = document.createElement("span");
+        label.textContent = " (未開放)";
+        label.style.color = "red";
+        btn.appendChild(label);
       }
+    });
+
+    // EXクイズ
+    document.querySelectorAll(".exQuizBtn").forEach(btn => {
+      const quizId = btn.dataset.id;
+      if (!exQuizRights || !exQuizRights[quizId]) {
+        btn.disabled = true;
+        btn.style.backgroundColor = "#ccc";
+        btn.style.color = "#666";
+        const label = document.createElement("span");
+        label.textContent = " (未開放)";
+        label.style.color = "red";
+        btn.appendChild(label);
+      }
+    });
+
+  } catch (err) {
+    console.error("回答権取得エラー:", err);
+  }
+}
+
+// EX問題解放チェック
+async function checkExUnlocked() {
+  try {
+    const res = await fetch(`/get-user/${encodeURIComponent(nickname)}`);
+    const user = await res.json();
+    const exUnlocked = user.quizPermissions && user.quizPermissions["ex01"];
+
+    if (exUnlocked) {
+      document.getElementById("exQuizzes").style.display = "block";
     }
+  } catch (err) {
+    console.error("EXチェックエラー:", err);
+  }
+}
+
+checkExUnlocked();
 
     // 初期化
     loadClearedQuizzes();

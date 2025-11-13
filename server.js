@@ -42,6 +42,21 @@ function loadDB() {
   }
   return dbCache;
 }
+// ======== 📝 安全保存関数 ========
+function safeSaveDB(db) {
+  dbCache = db;
+  dirty = true;
+
+  // 保存の間隔をあける（高速連続書き込み防止）
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    fs.writeFile(DB_FILE, JSON.stringify(dbCache, null, 2), (err) => {
+      if (err) console.error("DB保存失敗:", err);
+      else console.log("✅ DB保存完了");
+      dirty = false;
+    });
+  }, 100); // 100ms後に書き込み
+}
 
 // クイズ権限チェック
 app.get("/quiz-rights/:nickname", (req, res) => {
@@ -49,24 +64,29 @@ app.get("/quiz-rights/:nickname", (req, res) => {
   const user = db[req.params.nickname];
   if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
 
-  res.json({ quizRights: user.quizRights || {} });
-});
-// 安全保存（5秒ごと）
-function safeSaveDB(db) {
-  dbCache = db;
-  dirty = true;
-  if (!saveTimer) {
-    saveTimer = setInterval(() => {
-      if (dirty) {
-        fs.writeFile(DB_FILE, JSON.stringify(dbCache, null, 2), (err) => {
-          if (err) console.error("❌ DB保存失敗:", err);
-          else console.log("💾 DB保存完了");
-        });
-        dirty = false;
+  const quizRights = user.quizRights || {};
+
+  // ノーマル全クリア判定
+  const allNormalCleared = ["quiz01","quiz02","quiz03","quiz04","quiz05"].every(q => quizRights[q]);
+
+  let exQuizRights = {};
+  if (allNormalCleared) {
+    // EXクイズを順番に解放
+    const exIds = ["ex01","ex02","ex03"];
+    for (let i = 0; i < exIds.length; i++) {
+      const prevCleared = i === 0 || quizRights[exIds[i-1]]; // 直前EXクリア済みなら解放
+      if (!quizRights[exIds[i]] && prevCleared) {
+        exQuizRights[exIds[i]] = true; // 解放
+        break; // 1つずつ解放
+      } else if (quizRights[exIds[i]]) {
+        exQuizRights[exIds[i]] = true; // すでにクリア済み
       }
-    }, 5000);
+    }
   }
-}
+
+  res.json({ quizRights, exQuizRights });
+});
+
 
 // 終了時に強制保存
 process.on("SIGTERM", () => {
@@ -112,8 +132,7 @@ app.post("/auth", (req, res) => {
 // QRコード読み取り用エンドポイント（固定URL）
 // ======== QR読み取りで解答権付与 ========
 app.post("/claim-quiz", (req, res) => {
-  const { nickname, quizId } = req.body;  // JSONから取得
-
+  const { nickname, quizId } = req.body;  
   const db = loadDB();
   if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
 
@@ -123,8 +142,16 @@ app.post("/claim-quiz", (req, res) => {
   }
 
   db[nickname].quizRights[quizId] = true;
+
+
+
+
   safeSaveDB(db);
-  res.json({ message: `${quizId} の解答権を取得しました！` });
+
+  res.json({ 
+    message: `${quizId} の解答権を取得しました！`,
+    exUnlocked: allNormalCleared // trueならフロントでアラート出せる
+  });
 });
 
 
@@ -246,24 +273,50 @@ app.post("/quest", async (req, res) => {
   const { nickname, amount, type, questId } = req.body;
   const db = loadDB();
 
-  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
-  if (questId && db[nickname].history.some(h => h.questId === questId))
+  const user = db[nickname];
+  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+  if (questId && user.history.some(h => h.questId === questId))
     return res.json({ message: "すでにクリア済み" });
 
   const reward = Number(amount);
   if (reward <= 0) return res.status(400).json({ error: "無効な報酬額" });
 
-  db[nickname].balance += reward;
-  db[nickname].history.push({
+  // 🔹 コイン加算と履歴追加
+  user.balance += reward;
+  user.history.push({
     type: type || "クエスト報酬",
     questId,
     amount: reward,
     date: new Date(),
   });
+
+  // 🔹 解答権の管理（quizRights）
+  user.quizRights = user.quizRights || {};
+  if (questId && questId.startsWith("quiz")) {
+    user.quizRights[questId] = true;
+  }
+
+  // 🔹 ノーマル問題全クリア判定
+  const normalQuizzes = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"];
+  const allNormalCleared = normalQuizzes.every(q => user.quizRights[q]);
+
+  // 🔹 EX問題解放ロジック
+  let exUnlocked = false;
+  if (allNormalCleared && !user.quizRights["ex01"]) {
+    user.quizRights["ex01"] = true;
+    exUnlocked = true;
+    console.log(`🎉 EX01 unlocked for ${nickname}`);
+  }
+
   safeSaveDB(db);
   io.emit("update");
-  res.json({ balance: db[nickname].balance });
+
+  res.json({
+    balance: user.balance,
+    exUnlocked,
+  });
 });
+
 // ユーザー存在確認
 app.get("/user-exists/:nickname", (req, res) => {
   const db = loadDB();
@@ -294,18 +347,19 @@ app.post("/send", (req, res) => {
 });
 
 // ======== 🧾 QRコード生成 ========
-app.get("/generate-qr/:nickname/:amount", async (req, res) => {
-  const { nickname, amount } = req.params;
-  if (!nickname || !amount) return res.status(400).json({ error: "不足情報" });
+app.get("/generate-qr/:nickname/:quizId", async (req, res) => {
+  const { nickname, quizId } = req.params;
+  if (!nickname || !quizId) return res.status(400).json({ error: "不足情報" });
 
   try {
-    const qrUrl = `https://ncoin-barky.onrender.com/claim-quiz.html?quizId=${quizId}`;
+    const qrUrl = `https://ncoin-barky.onrender.com/claim-quiz.html?nickname=${encodeURIComponent(nickname)}&quizId=${encodeURIComponent(quizId)}`;
     const qr = await QRCode.toDataURL(qrUrl);
     res.json({ qr });
   } catch (err) {
     res.status(500).json({ error: "QR生成失敗", detail: err.message });
   }
 });
+
 
 // ======== 🏆 ランキング ========
 app.get("/ranking", (req, res) => {
