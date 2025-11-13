@@ -299,7 +299,7 @@ app.get("/generate-qr/:nickname/:amount", async (req, res) => {
   if (!nickname || !amount) return res.status(400).json({ error: "不足情報" });
 
   try {
-    const qrUrl = `${req.protocol}://${req.get("host")}/pay.html?from=${encodeURIComponent(nickname)}&amount=${encodeURIComponent(amount)}`;
+    const qrUrl = `https://ncoin-barky.onrender.com/claim-quiz.html?quizId=${quizId}`;
     const qr = await QRCode.toDataURL(qrUrl);
     res.json({ qr });
   } catch (err) {

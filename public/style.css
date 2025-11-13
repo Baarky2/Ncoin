@@ -233,3 +233,17 @@ input {
   .quiz-buttons { flex-direction: column; }
   .qr-quiz-section h2 { font-size: 1.2rem; }
 }
+/* 管理者切替リンクの共通設定（PC・スマホ共通） */
+#adminToggle {
+  text-decoration: underline;
+  color: gray;          /* PC・スマホ共通で灰色に */
+  cursor: pointer;
+  font-size: 0.9rem;    /* PC用の少し小さめサイズ */
+}
+
+/* スマホ専用 */
+@media (max-width: 768px) {
+  #adminToggle {
+    font-size: 0.8rem;  /* スマホではさらに小さく */
+  }
+}
