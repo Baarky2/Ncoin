@@ -141,32 +141,28 @@ app.post("/auth", (req, res) => {
 // QRコード読み取り用エンドポイント（固定URL）
 // ======== QR読み取りで解答権付与 ========
 app.post("/claim-quiz", (req, res) => {
-  const {
-    nickname,
-    quizId
-  } = req.body;
+  const { nickname, quizId } = req.body;
   const db = loadDB();
-  if (!db[nickname]) return res.status(404).json({
-    error: "ユーザーが存在しません"
-  });
+  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
 
   db[nickname].quizRights = db[nickname].quizRights || {};
   if (db[nickname].quizRights[quizId]) {
-    return res.json({
-      message: `すでに ${quizId} の解答権を持っています`
-    });
+    return res.json({ message: `すでに ${quizId} の解答権を持っています` });
   }
 
+  // 解答権を付与
   db[nickname].quizRights[quizId] = true;
 
+  // ── ノーマルクイズ全クリア判定 ──
+  const normalQuizzes = ["quiz01","quiz02","quiz03","quiz04","quiz05"];
+  const allNormalCleared = normalQuizzes.every(q => db[nickname].quizRights[q]);
 
-
-
+  // 保存
   safeSaveDB(db);
 
+  // レスポンス
   res.json({
     message: `${quizId} の解答権を取得しました！`,
-
     exUnlocked: allNormalCleared // trueならフロントでアラート出せる
   });
 });
