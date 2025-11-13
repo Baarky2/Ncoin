@@ -37,7 +37,7 @@
       const nickname = localStorage.getItem("nickname");
       if (!nickname) {
         alert("⚠️ ログイン情報がありません。ログインしてください。");
-        window.location.href = "/login.html";
+        window.location.href = "/index.html";
         return;
       }
 
@@ -50,11 +50,14 @@
       }
 
       try {
-        const res = await fetch("/claim-quiz", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nickname, quizId })
-        });
+const res = await fetch("/claim-quiz", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ 
+    nickname: params.get("nickname"), 
+    quizId: params.get("quizId") 
+  })
+});
         const data = await res.json();
 
         if (data.error) {

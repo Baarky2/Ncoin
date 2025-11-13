@@ -23,7 +23,9 @@ const ADMIN_CODE = process.env.ADMIN_CODE || "Z4kL8PqR9"; // 管理者コード
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({
+  extended: true
+}));
 app.use(express.static("public"));
 
 // ======== 🧠 データ管理 ========
@@ -62,19 +64,21 @@ function safeSaveDB(db) {
 app.get("/quiz-rights/:nickname", (req, res) => {
   const db = loadDB();
   const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+  if (!user) return res.status(404).json({
+    error: "ユーザーが存在しません"
+  });
 
   const quizRights = user.quizRights || {};
 
   // ノーマル全クリア判定
-  const allNormalCleared = ["quiz01","quiz02","quiz03","quiz04","quiz05"].every(q => quizRights[q]);
+  const allNormalCleared = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"].every(q => quizRights[q]);
 
   let exQuizRights = {};
   if (allNormalCleared) {
     // EXクイズを順番に解放
-    const exIds = ["ex01","ex02","ex03"];
+    const exIds = ["ex01", "ex02", "ex03"];
     for (let i = 0; i < exIds.length; i++) {
-      const prevCleared = i === 0 || quizRights[exIds[i-1]]; // 直前EXクリア済みなら解放
+      const prevCleared = i === 0 || quizRights[exIds[i - 1]]; // 直前EXクリア済みなら解放
       if (!quizRights[exIds[i]] && prevCleared) {
         exQuizRights[exIds[i]] = true; // 解放
         break; // 1つずつ解放
@@ -84,7 +88,10 @@ app.get("/quiz-rights/:nickname", (req, res) => {
     }
   }
 
-  res.json({ quizRights, exQuizRights });
+  res.json({
+    quizRights,
+    exQuizRights
+  });
 });
 
 
@@ -121,7 +128,9 @@ app.get("/pay.html", (_, res) => res.sendFile(path.join(__dirname, "public/pay.h
 
 // 🔐 認証
 app.post("/auth", (req, res) => {
-  const { code } = req.body;
+  const {
+    code
+  } = req.body;
   if (code === process.env.ACCESS_CODE) {
     res.redirect("/index.html");
   } else {
@@ -132,13 +141,20 @@ app.post("/auth", (req, res) => {
 // QRコード読み取り用エンドポイント（固定URL）
 // ======== QR読み取りで解答権付与 ========
 app.post("/claim-quiz", (req, res) => {
-  const { nickname, quizId } = req.body;  
+  const {
+    nickname,
+    quizId
+  } = req.body;
   const db = loadDB();
-  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
+  if (!db[nickname]) return res.status(404).json({
+    error: "ユーザーが存在しません"
+  });
 
   db[nickname].quizRights = db[nickname].quizRights || {};
   if (db[nickname].quizRights[quizId]) {
-    return res.json({ message: `すでに ${quizId} の解答権を持っています` });
+    return res.json({
+      message: `すでに ${quizId} の解答権を持っています`
+    });
   }
 
   db[nickname].quizRights[quizId] = true;
@@ -148,8 +164,9 @@ app.post("/claim-quiz", (req, res) => {
 
   safeSaveDB(db);
 
-  res.json({ 
+  res.json({
     message: `${quizId} の解答権を取得しました！`,
+
     exUnlocked: allNormalCleared // trueならフロントでアラート出せる
   });
 });
@@ -157,11 +174,17 @@ app.post("/claim-quiz", (req, res) => {
 
 // 👤 ログイン
 app.post("/login", (req, res) => {
-  let { nickname, adminCode, accessCode } = req.body;
+  let {
+    nickname,
+    adminCode,
+    accessCode
+  } = req.body;
 
   // アクセスコードチェック
   if (accessCode !== process.env.ACCESS_CODE) {
-    return res.json({ error: "アクセスコードが無効です" });
+    return res.json({
+      error: "アクセスコードが無効です"
+    });
   }
 
   // 管理者判定
@@ -169,7 +192,9 @@ app.post("/login", (req, res) => {
 
   // 管理者コードが入力されているのに正しくない場合は拒否
   if (adminCode && !isAdmin) {
-    return res.json({ error: "管理者コードが無効です" });
+    return res.json({
+      error: "管理者コードが無効です"
+    });
   }
 
   // 管理者は nickname を "admin" 固定
@@ -177,24 +202,26 @@ app.post("/login", (req, res) => {
 
   // 一般ユーザーの場合ニックネームの妥当性をチェック
   if (!isAdmin && !validateNickname(finalNickname)) {
-    return res.json({ error: "無効なニックネームです" });
+    return res.json({
+      error: "無効なニックネームです"
+    });
   }
 
   const db = loadDB();
 
-// ユーザー登録
-if (!db[finalNickname]) {
-  db[finalNickname] = { 
-    balance: isAdmin ? 10000 : 100, 
-    history: [], 
-    isAdmin,
-    quizRights: {} // ← デフォルトで解答権なし
-  };
-} else if (isAdmin) {
-  db[finalNickname].isAdmin = true;
-  db[finalNickname].balance = 10000;
-  db[finalNickname].quizRights = db[finalNickname].quizRights || {};
-}
+  // ユーザー登録
+  if (!db[finalNickname]) {
+    db[finalNickname] = {
+      balance: isAdmin ? 10000 : 100,
+      history: [],
+      isAdmin,
+      quizRights: {} // ← デフォルトで解答権なし
+    };
+  } else if (isAdmin) {
+    db[finalNickname].isAdmin = true;
+    db[finalNickname].balance = 10000;
+    db[finalNickname].quizRights = db[finalNickname].quizRights || {};
+  }
 
 
   safeSaveDB(db);
@@ -212,8 +239,12 @@ if (!db[finalNickname]) {
 app.get("/balance/:nickname", (req, res) => {
   const db = loadDB();
   const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
-  res.json({ balance: user.balance });
+  if (!user) return res.status(404).json({
+    error: "ユーザーが存在しません"
+  });
+  res.json({
+    balance: user.balance
+  });
 });
 
 // ======== 🧩 クイズ報酬 ========
@@ -270,16 +301,27 @@ app.get("/quiz05.html", (req, res) => {
 
 // ======== 🎯 クエスト報酬 ========
 app.post("/quest", async (req, res) => {
-  const { nickname, amount, type, questId } = req.body;
+  const {
+    nickname,
+    amount,
+    type,
+    questId
+  } = req.body;
   const db = loadDB();
 
   const user = db[nickname];
-  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+  if (!user) return res.status(404).json({
+    error: "ユーザーが存在しません"
+  });
   if (questId && user.history.some(h => h.questId === questId))
-    return res.json({ message: "すでにクリア済み" });
+    return res.json({
+      message: "すでにクリア済み"
+    });
 
   const reward = Number(amount);
-  if (reward <= 0) return res.status(400).json({ error: "無効な報酬額" });
+  if (reward <= 0) return res.status(400).json({
+    error: "無効な報酬額"
+  });
 
   // 🔹 コイン加算と履歴追加
   user.balance += reward;
@@ -321,16 +363,26 @@ app.post("/quest", async (req, res) => {
 app.get("/user-exists/:nickname", (req, res) => {
   const db = loadDB();
   const nickname = req.params.nickname;
-  res.json({ exists: !!db[nickname] });
+  res.json({
+    exists: !!db[nickname]
+  });
 });
 
 // ======== 🔄 送金 ========
 app.post("/send", (req, res) => {
-  const { from, to, amount } = req.body;
+  const {
+    from,
+    to,
+    amount
+  } = req.body;
   const db = loadDB();
 
-  if (!db[from] || !db[to]) return res.status(400).json({ error: "ユーザーが存在しません" });
-  if (!db[from].isAdmin && db[from].balance < amount) return res.status(400).json({ error: "残高不足" });
+  if (!db[from] || !db[to]) return res.status(400).json({
+    error: "ユーザーが存在しません"
+  });
+  if (!db[from].isAdmin && db[from].balance < amount) return res.status(400).json({
+    error: "残高不足"
+  });
 
   const amt = Number(amount);
   const date = new Date().toISOString();
@@ -338,25 +390,48 @@ app.post("/send", (req, res) => {
   if (!db[from].isAdmin) db[from].balance -= amt;
   db[to].balance += amt;
 
-  db[from].history.push({ type: "送金", to, amount: amt, date });
-  db[to].history.push({ type: "受取", from, amount: amt, date });
+  db[from].history.push({
+    type: "送金",
+    to,
+    amount: amt,
+    date
+  });
+  db[to].history.push({
+    type: "受取",
+    from,
+    amount: amt,
+    date
+  });
 
   safeSaveDB(db);
   io.emit("update");
-  res.json({ success: true, balance: db[from].balance });
+  res.json({
+    success: true,
+    balance: db[from].balance
+  });
 });
 
 // ======== 🧾 QRコード生成 ========
 app.get("/generate-qr/:nickname/:quizId", async (req, res) => {
-  const { nickname, quizId } = req.params;
-  if (!nickname || !quizId) return res.status(400).json({ error: "不足情報" });
+  const {
+    nickname,
+    quizId
+  } = req.params;
+  if (!nickname || !quizId) return res.status(400).json({
+    error: "不足情報"
+  });
 
   try {
     const qrUrl = `https://ncoin-barky.onrender.com/claim-quiz.html?nickname=${encodeURIComponent(nickname)}&quizId=${encodeURIComponent(quizId)}`;
     const qr = await QRCode.toDataURL(qrUrl);
-    res.json({ qr });
+    res.json({
+      qr
+    });
   } catch (err) {
-    res.status(500).json({ error: "QR生成失敗", detail: err.message });
+    res.status(500).json({
+      error: "QR生成失敗",
+      detail: err.message
+    });
   }
 });
 
@@ -367,7 +442,10 @@ app.get("/ranking", (req, res) => {
   const ranking = Object.entries(db)
     .filter(([_, data]) => !data.isAdmin)
     .sort((a, b) => b[1].balance - a[1].balance)
-    .map(([name, data]) => ({ nickname: name, balance: data.balance }));
+    .map(([name, data]) => ({
+      nickname: name,
+      balance: data.balance
+    }));
 
   res.json(ranking);
 });
@@ -376,7 +454,9 @@ app.get("/ranking", (req, res) => {
 app.get("/history/:nickname", (req, res) => {
   const db = loadDB();
   const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
+  if (!user) return res.status(404).json({
+    error: "ユーザーが存在しません"
+  });
   res.json(user.history);
 });
 
@@ -384,45 +464,65 @@ app.get("/history/:nickname", (req, res) => {
 
 // 管理者認証
 function checkAdmin(req, res, next) {
-  const { adminCode } = req.body;
+  const {
+    adminCode
+  } = req.body;
   if (adminCode !== process.env.ADMIN_CODE) {
-    return res.status(403).json({ error: "管理者コードが無効です" });
+    return res.status(403).json({
+      error: "管理者コードが無効です"
+    });
   }
   next();
 }
 
 // 🪙 全員にコイン配布
 app.post("/admin/distribute", checkAdmin, async (req, res) => {
-  const { amount } = req.body;
+  const {
+    amount
+  } = req.body;
   const reward = Number(amount);
   if (!Number.isFinite(reward) || reward <= 0) {
-    return res.status(400).json({ error: "無効な金額です" });
+    return res.status(400).json({
+      error: "無効な金額です"
+    });
   }
 
   const db = loadDB();
   Object.keys(db).forEach(name => {
     if (!db[name].isAdmin) {
       db[name].balance += reward;
-      db[name].history.push({ type: "全体配布", amount: reward, date: new Date().toISOString() });
+      db[name].history.push({
+        type: "全体配布",
+        amount: reward,
+        date: new Date().toISOString()
+      });
     }
   });
 
   safeSaveDB(db);
   io.emit("update");
-  res.json({ message: `全ユーザーに ${reward} コイン配布完了` });
+  res.json({
+    message: `全ユーザーに ${reward} コイン配布完了`
+  });
 });
 
 // ❌ 特定ユーザー削除
 app.post("/admin/delete", checkAdmin, async (req, res) => {
-  const { target } = req.body;
+  const {
+    target
+  } = req.body;
   const db = loadDB();
 
-  if (!db[target]) return res.status(404).json({ error: "指定されたユーザーが存在しません" });
+  if (!db[target]) return res.status(404).json({
+    error: "指定されたユーザーが存在しません"
+  });
 
   delete db[target];
   safeSaveDB(db);
   io.emit("update");
-  res.json({ message: `ユーザー '${target}' を削除しました` });
+  res.json({
+    message: `ユーザー '${target}' を削除しました`
+  });
 });
 
 // ======== ⚡ Socket.io ========

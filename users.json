@@ -1,4 +1,10 @@
 {
+  "1": {
+    "balance": 100,
+    "history": [],
+    "isAdmin": "",
+    "quizRights": {}
+  },
   "バーキー": {
     "balance": 300,
     "history": [
@@ -41,5 +47,13 @@
     ],
     "isAdmin": "",
     "quizRights": {}
+  },
+  "a": {
+    "balance": 100,
+    "history": [],
+    "isAdmin": "",
+    "quizRights": {
+      "quiz05": true
+    }
   }
 }

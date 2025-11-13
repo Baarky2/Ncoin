@@ -38,6 +38,35 @@ body {
   margin-top: 10px;
   font-size: 1.3rem;
 }
+/* クイズボタン共通 */
+.quiz-btn {
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.2s;
+  width: 100%;       /* 幅統一 */
+  max-width: 300px;  /* 最大幅 */
+  box-sizing: border-box;
+}
+
+/* 状態別カラー */
+.quiz-btn.locked { background-color: #6c757d; cursor: not-allowed; }
+.quiz-btn.available { background-color: #007bff; }
+.quiz-btn.available:hover { background-color: #0056b3; }
+.quiz-btn.cleared { background-color: #28a745; }
+.quiz-btn.cleared:hover { background-color: #1e7e34; }
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+  .quiz-btn {
+    font-size: 1.4rem;
+    padding: 14px 40px;
+    max-width: 200px;
+  }
+}
 
 /* Quizボタン */
 .quiz-buttons {
@@ -245,5 +274,50 @@ input {
 @media (max-width: 768px) {
   #adminToggle {
     font-size: 0.8rem;  /* スマホではさらに小さく */
+  }
+}
+/* 共通クイズボタン */
+.quizBtn, .exQuizBtn {
+  width: 100%;
+  max-width: 300px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  box-sizing: border-box;
+  margin: 5px 0;
+}
+
+/* 状態別 */
+.quizBtn.locked, .exQuizBtn.locked {
+  background-color: #6c757d; /* 灰色＝未解放 */
+  cursor: not-allowed;
+}
+
+.quizBtn.available, .exQuizBtn.available {
+  background-color: #007bff; /* 青＝回答可能 */
+}
+
+.quizBtn.available:hover, .exQuizBtn.available:hover {
+  background-color: #0056b3;
+}
+
+.quizBtn.cleared, .exQuizBtn.cleared {
+  background-color: #28a745; /* 緑＝クリア済み */
+  cursor: default;
+}
+
+.quizBtn.cleared:hover, .exQuizBtn.cleared:hover {
+  background-color: #1e7e34;
+}
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+  .quizBtn, .exQuizBtn {
+    font-size: 1.2rem;
+    padding: 14px 28px;
   }
 }

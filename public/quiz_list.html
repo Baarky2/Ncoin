@@ -203,6 +203,54 @@ async function checkExUnlocked() {
     console.error("EXチェックエラー:", err);
   }
 }
+async function loadQuizButtons() {
+  try {
+    const res = await fetch(`/quiz-rights/${encodeURIComponent(nickname)}`);
+    const { quizRights, exQuizRights } = await res.json();
+
+    // ノーマルクイズ
+    document.querySelectorAll(".quizBtn").forEach(btn => {
+      const quizId = btn.dataset.id;
+      btn.classList.remove("locked", "available", "cleared");
+
+      if (quizRights[quizId] === true) {
+        btn.classList.add("cleared"); // クリア済み
+        btn.textContent = quizId.toUpperCase() + " ✅";
+        btn.disabled = true;
+      } else if (quizRights[quizId] === false) {
+        btn.classList.add("available"); // 回答可能
+        btn.disabled = false;
+      } else {
+        btn.classList.add("locked"); // 未解放
+        btn.disabled = true;
+      }
+    });
+
+    // EXクイズ
+    document.querySelectorAll(".exQuizBtn").forEach(btn => {
+      const quizId = btn.dataset.id;
+      btn.classList.remove("locked", "available", "cleared");
+
+      if (exQuizRights && exQuizRights[quizId] === true) {
+        btn.classList.add("available"); // 解放済み
+        btn.disabled = false;
+      } else {
+        btn.classList.add("locked"); // 未解放
+        btn.disabled = true;
+      }
+    });
+
+    // EXクイズ表示
+    const anyExAvailable = Object.values(exQuizRights || {}).some(v => v);
+    document.getElementById("exQuizzes").style.display = anyExAvailable ? "block" : "none";
+
+  } catch (err) {
+    console.error("回答権取得エラー:", err);
+  }
+}
+
+// 初期化
+loadQuizButtons();
 
 checkExUnlocked();
 
