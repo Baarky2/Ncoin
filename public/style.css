@@ -58,6 +58,19 @@ body {
 .quiz-btn.available:hover { background-color: #0056b3; }
 .quiz-btn.cleared { background-color: #28a745; }
 .quiz-btn.cleared:hover { background-color: #1e7e34; }
+button.cleared,
+.quizBtn.cleared,
+.exQuizBtn.cleared {
+  background-color: #28a745; /* 緑 */
+  color: white;
+  cursor: default;           /* クリック不可 */
+}
+
+button.cleared:hover,
+.quizBtn.cleared:hover,
+.exQuizBtn.cleared:hover {
+  background-color: #28a745; /* ホバー時も色を変えない */
+}
 
 /* スマホ対応 */
 @media (max-width: 768px) {
@@ -299,8 +312,19 @@ input {
 .quizBtn.locked, .exQuizBtn.locked { background-color: #6c757d; cursor: not-allowed; }
 .quizBtn.available, .exQuizBtn.available { background-color: #007bff; }
 .quizBtn.available:hover, .exQuizBtn.available:hover { background-color: #0056b3; }
-.quizBtn.cleared, .exQuizBtn.cleared { background-color: #28a745; cursor: default; }
-.quizBtn.cleared:hover, .exQuizBtn.cleared:hover { background-color: #1e7e34; }
+button.cleared,
+.quizBtn.cleared,
+.exQuizBtn.cleared {
+  background-color: #28a745; /* 緑 */
+  color: white;
+  cursor: default;           /* クリック不可 */
+}
+
+button.cleared:hover,
+.quizBtn.cleared:hover,
+.exQuizBtn.cleared:hover {
+  background-color: #28a745; /* ホバー時も色を変えない */
+}
 
 /* スマホ対応 */
 @media (max-width: 768px) {
