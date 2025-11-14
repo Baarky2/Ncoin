@@ -78,6 +78,10 @@
 
 <body>
   <div class="container">
+<div class="quiz-list" id="exQuizzes">
+  <h2>EXクイズ</h2>
+</div>
+
 <div class="quiz-list" id="normalQuizzes">
   <h2>ノーマルクイズ</h2>
   <button class="quizBtn" data-id="quiz01"></button>
@@ -87,17 +91,8 @@
   <button class="quizBtn" data-id="quiz05"></button>
 </div>
 
-<div class="quiz-list" id="exQuizzes" style="display:none;">
-  <h2>EXクイズ</h2>
-<button class="exQuizBtn" data-id="ex01"></button>
-<button class="exQuizBtn" data-id="ex02"></button>
-<button class="exQuizBtn" data-id="ex03"></button>
-<button class="exQuizBtn" data-id="ex04"></button>
-<button class="exQuizBtn" data-id="ex05"></button>
-<button class="exQuizBtn" data-id="ex06"></button>
-<button class="exQuizBtn" data-id="ex07"></button>
+ 
 
-</div>
 
 
   </div>
@@ -235,7 +230,7 @@ async function checkExUnlocked() {
   const normalQuizIds = Array.from(document.querySelectorAll(".quizBtn")).map(b => b.dataset.id);
   const allCleared = normalQuizIds.every(id => clearedIds.includes(id));
 
-  document.getElementById("exQuizzes").style.display = allCleared ? "block" : "none";
+container.style.display = anyAvailable ? "block" : "none";
 
     if (allCleared) {
       document.getElementById("exQuizzes").style.display = "block";
@@ -309,67 +304,57 @@ document.querySelectorAll(".exQuizBtn").forEach(btn => {
   }
 }
 
-async function loadExQuizzes() {
-  try {
-    // 履歴からクリア済みを取得
-    const historyRes = await fetch(`/history/${encodeURIComponent(nickname)}`);
-    const history = await historyRes.json();
-    const clearedIds = history.map(h => h.questId);
+async function loadExQuizzes(clearedIds) {
+  const exList = ["ex01","ex02","ex03","ex04","ex05","ex06","ex07"];
+  const container = document.getElementById("exQuizzes");
+container.innerHTML = "";
 
-    const exContainer = document.getElementById("exQuizzes");
-    exContainer.innerHTML = "<h2>EXクイズ</h2>"; // ★初期化（表示を作り直す）
+  let unlockedNext = true; // 1問ずつ解放用フラグ
 
-    const exList = ["ex01", "ex02", "ex03", "ex04", "ex05", "ex06", "ex07"];
+  for (let id of exList) {
+    const btn = document.createElement("button");
+    btn.className = "exQuizBtn";
+    btn.dataset.id = id;
 
-    let unlocked = true; // EX01 は常に解放扱い
-
-    for (let i = 0; i < exList.length; i++) {
-      const id = exList[i];
-
-      // ボタン生成
-      const btn = document.createElement("button");
-      btn.className = "exQuizBtn";
-      btn.dataset.id = id;
-
-      if (clearedIds.includes(id)) {
-        // ✅ クリア済み → 緑＋報酬受け取り済みに
-        btn.classList.add("cleared");
-        btn.textContent = "報酬受け取り済み";
-        btn.disabled = true;
-
-        // 次のボタンは解放可能
-        unlocked = true;
-      } else if (unlocked) {
-        // 未解答かつ解放済み → 青
-        btn.classList.add("available");
-        btn.textContent = id.toUpperCase();
-        btn.disabled = false;
-
-        // 次のボタンはまだ解放しない
-        unlocked = false;
-      } else {
-        // 未解答かつ未解放 → 灰色
-        btn.classList.add("locked");
-        btn.textContent = id.toUpperCase();
-        btn.disabled = true;
-      }
-
-      btn.addEventListener("click", () => goQuiz(id));
-      exContainer.appendChild(btn);
+    if (clearedIds.includes(id)) {
+      btn.classList.add("cleared");
+      btn.textContent = "報酬受け取り済み";
+      btn.disabled = true;
+    } else if (unlockedNext) {
+      btn.classList.add("available");
+      btn.textContent = id.toUpperCase();
+      btn.disabled = false;
+      unlockedNext = false; // 次のボタンは未解放
+    } else {
+      btn.classList.add("locked");
+      btn.textContent = id.toUpperCase();
+      btn.disabled = true;
     }
 
-  } catch (err) {
-    console.error("EXロードエラー:", err);
+    btn.addEventListener("click", () => goQuiz(id));
+    container.appendChild(btn);
   }
+
+  // EXクイズを表示
+  const anyAvailable = container.querySelectorAll(".available, .cleared").length > 0;
+  container.style.display = anyAvailable ? "block" : "none";
 }
 
+async function initQuizPage() {
+  await loadQuizButtons();
+  await checkExUnlocked();
+  await loadClearedQuizzes();
+  await loadQuizRights();
 
-loadQuizButtons();
-checkExUnlocked();
-loadClearedQuizzes();
-loadQuizRights();
-loadExQuizzes();   // ★EXの1問ずつ解放用
+  const historyRes = await fetch(`/history/${encodeURIComponent(nickname)}`);
+  const history = await historyRes.json();
+  const clearedIds = history.map(h => h.questId || "");
+  loadExQuizzes(clearedIds);
+}
 
-  </script>
+// ページ読み込み時に実行
+initQuizPage();
+
+</script>
 </body>
 </html>

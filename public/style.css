@@ -38,125 +38,56 @@ body {
   margin-top: 10px;
   font-size: 1.3rem;
 }
+
 /* クイズボタン共通 */
-.quiz-btn {
-  color: white;
+.quiz-btn,
+.quizBtn,
+.exQuizBtn {
+  width: 100%;
+  max-width: 300px;
+  padding: 12px 20px;
   border: none;
-  padding: 12px 24px;
   border-radius: 8px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: 0.2s;
-  width: 100%;       /* 幅統一 */
-  max-width: 300px;  /* 最大幅 */
+  color: white;
+  font-size: 1rem;
+  transition: background 0.2s ease;
   box-sizing: border-box;
+  margin: 5px 0;
+  text-align: center;
+  white-space: nowrap;
+  background-color: #007bff;
+  cursor: pointer;
 }
 
 /* 状態別カラー */
-.quiz-btn.locked { background-color: #6c757d; cursor: not-allowed; }
-.quiz-btn.available { background-color: #007bff; }
-.quiz-btn.available:hover { background-color: #0056b3; }
-.quiz-btn.cleared { background-color: #28a745; }
-.quiz-btn.cleared:hover { background-color: #1e7e34; }
-button.cleared,
+.quiz-btn.locked,
+.quizBtn.locked,
+.exQuizBtn.locked { background-color: #6c757d; cursor: not-allowed; }
+
+.quiz-btn.available,
+.quizBtn.available,
+.exQuizBtn.available { background-color: #007bff; }
+
+.quiz-btn.available:hover,
+.quizBtn.available:hover,
+.exQuizBtn.available:hover { background-color: #0056b3; }
+
+.quiz-btn.cleared,
 .quizBtn.cleared,
-.exQuizBtn.cleared {
-  background-color: #28a745; /* 緑 */
+.exQuizBtn.cleared,
+button.cleared {
+  background-color: #28a745;
   color: white;
-  cursor: default;           /* クリック不可 */
+  cursor: default;
 }
 
-button.cleared:hover,
 .quizBtn.cleared:hover,
-.exQuizBtn.cleared:hover {
-  background-color: #28a745; /* ホバー時も色を変えない */
+.exQuizBtn.cleared:hover,
+button.cleared:hover {
+  background-color: #28a745;
 }
 
-/* スマホ対応 */
-@media (max-width: 768px) {
-  .quiz-btn {
-    font-size: 1.4rem;
-    padding: 14px 40px;
-    max-width: 200px;
-  }
-}
-
-/* Quizボタン */
-.quiz-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.quiz-buttons button {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.quiz-buttons button:hover { background: #1e7e34; }
-
-.main-content {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: 90%;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-/* 左側クイズボタン縦置き */
-.quiz-sidebar {
-  flex: 0 0 150px; /* 幅固定 */
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* PC用ボタン */
-.quiz-sidebar button {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.quiz-sidebar button:hover { background: #1e7e34; }
-
-/* 右側メイン部分は従来通り */
-.content {
-  flex: 2;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
-}
-
-/* ランキング部分 */
-.ranking {
-  flex: 1;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
-}
-
-.ranking h2 { margin-bottom: 10px; }
-.ranking ol { padding-left: 20px; }
-.ranking li { margin: 5px 0; }
-
-/* ボタン & 入力欄 */
+/* PC・スマホ共通ボタン */
 button {
   background: #007bff;
   color: white;
@@ -173,26 +104,29 @@ button:active { transform: translateY(2px); }
 
 /* 入力欄 */
 input {
-  padding: 12px 10px;          /* 縦幅を少し増やす */
+  padding: 12px 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 1rem;
-  margin: 8px 0;               /* 上下マージン調整 */
-  width: 100%;                 /* 親幅いっぱいに広げる */
+  margin: 8px 0;
+  width: 100%;
   max-width: 300px;
-  box-sizing: border-box;      /* パディング込みで幅を計算 */
+  box-sizing: border-box;
 }
 
-/* 送金ボタン */
-#sendBtn, #questBtn, .pay-btn {
-  width: 100%;                 /* 入力欄と同じ幅に */
+/* 送金・クエストボタン */
+#sendBtn,
+#questBtn,
+.pay-btn {
+  width: 100%;
   max-width: 300px;
   font-size: 1rem;
-  padding: 12px 0;             /* 高さを確保 */
+  padding: 12px 0;
   margin: 8px 0;
   border-radius: 6px;
 }
 
+/* Quiz一覧 */
 .quiz-list {
   display: flex;
   flex-direction: column;
@@ -213,7 +147,71 @@ input {
 
 .quiz-list button:hover { background: #0056b3; }
 
+/* レイアウト */
+.main-content {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 90%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
 
+/* 左側クイズボタン縦置き */
+.quiz-sidebar {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.quiz-sidebar button {
+  background: #28a745;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.quiz-sidebar button:hover { background: #1e7e34; }
+
+/* メインコンテンツ */
+.content,
+.ranking {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.ranking {
+  flex: 1;
+}
+
+.ranking h2 { margin-bottom: 10px; }
+.ranking ol { padding-left: 20px; }
+.ranking li { margin: 5px 0; }
+
+/* 管理者切替リンク */
+#adminToggle {
+  text-decoration: underline;
+  color: gray;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* EXクイズ縦並び */
+#exQuizzes {
+  display: flex;
+  flex-direction: column !important; /* 上下に縦並び */
+  align-items: center !important;   /* 真ん中寄せ */
+  justify-content: center !important; /* 上下中央配置 */
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto; /* 中央揃え */
+}
 
 /* =========================================
    📱 スマホ用デザイン（768px以下）
@@ -224,7 +222,6 @@ input {
   h2 { font-size: 2rem; }
   p, li, span { font-size: 1.8rem; }
 
-  /* QRとQuizボタン縦配置 */
   .qr-quiz-section {
     display: flex;
     flex-direction: column;
@@ -233,37 +230,61 @@ input {
   }
 
   .qr-quiz-section img { width: 180px; height: 180px; }
-  .quiz-buttons { flex-direction: column; width: 100%; }
-  .quiz-buttons button { font-size: 1.2rem; padding: 14px 28px; width: 100%; }
 
-  /* メイン & ランキング縦配置 */
-  .main-content { flex-direction: column; align-items: center; }
-  .content, .ranking {
+  .quiz-buttons { flex-direction: column; width: 100%; }
+  .quiz-buttons button {
+    font-size: 1.2rem;
+    padding: 14px 28px;
+    width: 100%;
+  }
+
+  .main-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .content,
+  .ranking {
     width: 95%;
     padding: 15px;
     border-radius: 10px;
-    box-shadow: 0 0 8px rgba(0,0,0,0.1);
   }
 
-  .ranking { margin-top: 50px; text-align: center; border-top: 4px solid #007bff; }
-  .ranking ol { display: inline-block; text-align: left; }
-  .container { padding-bottom: 300px; }
+  .ranking {
+    margin-top: 50px;
+    text-align: center;
+    border-top: 4px solid #007bff;
+  }
 
-  /* 🔹 クイズ一覧を横並びに＆長めに */
   .quiz-list {
-    display: flex;
     flex-direction: row;
-    justify-content: center;
-    flex-wrap: wrap;            /* 画面幅に応じて折り返す */
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 20px;
   }
 
   .quiz-list button {
     font-size: 1.4rem;
-    padding: 14px 40px;         /* 横に少し長く */
-    width: auto;                /* 幅を固定しない */
-    white-space: nowrap;        /* ボタン内の改行防止 */
+    padding: 14px 40px;
+    width: auto;
+  }
+
+  #adminToggle { font-size: 0.8rem; }
+
+  #exQuizzes {
+    width: 100%;
+    align-items: center;
+  }
+
+  #exQuizzes .exQuizBtn {
+    width: 90%;
+    max-width: 300px;
+  }
+
+  .quizBtn,
+  .exQuizBtn {
+    font-size: 1.2rem;
+    padding: 14px 28px;
   }
 }
 
@@ -271,65 +292,27 @@ input {
    💻 PC用デザイン（769px以上）
 ========================================= */
 @media (min-width: 769px) {
-  .qr-quiz-section { display: flex; align-items: center; gap: 20px; }
+  .qr-quiz-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
   .quiz-buttons { flex-direction: column; }
+
   .qr-quiz-section h2 { font-size: 1.2rem; }
 }
-/* 管理者切替リンクの共通設定（PC・スマホ共通） */
-#adminToggle {
-  text-decoration: underline;
-  color: gray;          /* PC・スマホ共通で灰色に */
-  cursor: pointer;
-  font-size: 0.9rem;    /* PC用の少し小さめサイズ */
-}
-
-/* スマホ専用 */
-@media (max-width: 768px) {
-  #adminToggle {
-    font-size: 0.8rem;  /* スマホではさらに小さく */
-  }
-}
-/* 共通クイズボタン */
-.quizBtn, .exQuizBtn {
+/* === EXQuiz 修正: 上下に縦一列(Y軸方向)に並べる === */
+#exQuizzes {
+  display: flex;
+  flex-direction: column !important; /* 上下に縦並び */
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  max-width: 300px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 1rem;
-  transition: background 0.2s ease;
-  box-sizing: border-box;
-  margin: 5px 0;
-  text-align: center;
-  white-space: nowrap;
-  background-color: #007bff; /* デフォルトは青＝availableに近い色 */
-  cursor: pointer;
 }
 
-
-
-.quizBtn.locked, .exQuizBtn.locked { background-color: #6c757d; cursor: not-allowed; }
-.quizBtn.available, .exQuizBtn.available { background-color: #007bff; }
-.quizBtn.available:hover, .exQuizBtn.available:hover { background-color: #0056b3; }
-button.cleared,
-.quizBtn.cleared,
-.exQuizBtn.cleared {
-  background-color: #28a745; /* 緑 */
-  color: white;
-  cursor: default;           /* クリック不可 */
-}
-
-button.cleared:hover,
-.quizBtn.cleared:hover,
-.exQuizBtn.cleared:hover {
-  background-color: #28a745; /* ホバー時も色を変えない */
-}
-
-/* スマホ対応 */
-@media (max-width: 768px) {
-  .quizBtn, .exQuizBtn {
-    font-size: 1.2rem;
-    padding: 14px 28px;
-  }
+.exQuizBtn {
+  width: 100% !important;
+  max-width: 300px !important;
+  display: block;
 }
