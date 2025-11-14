@@ -78,7 +78,7 @@
         const history = await res.json();
         const cleared = history.some(h => h.questId === questId);
         if (cleared) {
-          resultMsg.textContent = "この謎はすでにクリア済みです ✅";
+          resultMsg.textContent = "この謎はすでにクリア済みです";
           resultMsg.style.color = "gray";
           checkBtn.disabled = true;
           answerInput.disabled = true;

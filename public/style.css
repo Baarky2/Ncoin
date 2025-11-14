@@ -279,43 +279,28 @@ input {
 /* 共通クイズボタン */
 .quizBtn, .exQuizBtn {
   width: 100%;
-  max-width: 300px;       /* 幅固定 */
+  max-width: 300px;
   padding: 12px 20px;
   border: none;
   border-radius: 8px;
   color: white;
   font-size: 1rem;
-  cursor: pointer;
   transition: background 0.2s ease;
   box-sizing: border-box;
   margin: 5px 0;
   text-align: center;
-  white-space: nowrap;     /* テキスト折り返し防止 */
+  white-space: nowrap;
+  background-color: #007bff; /* デフォルトは青＝availableに近い色 */
+  cursor: pointer;
 }
 
 
-/* 状態別 */
-.quizBtn.locked, .exQuizBtn.locked {
-  background-color: #6c757d; /* 灰色＝未解放 */
-  cursor: not-allowed;
-}
 
-.quizBtn.available, .exQuizBtn.available {
-  background-color: #007bff; /* 青＝回答可能 */
-}
-
-.quizBtn.available:hover, .exQuizBtn.available:hover {
-  background-color: #0056b3;
-}
-
-.quizBtn.cleared, .exQuizBtn.cleared {
-  background-color: #28a745; /* 緑＝クリア済み */
-  cursor: default;
-}
-
-.quizBtn.cleared:hover, .exQuizBtn.cleared:hover {
-  background-color: #1e7e34;
-}
+.quizBtn.locked, .exQuizBtn.locked { background-color: #6c757d; cursor: not-allowed; }
+.quizBtn.available, .exQuizBtn.available { background-color: #007bff; }
+.quizBtn.available:hover, .exQuizBtn.available:hover { background-color: #0056b3; }
+.quizBtn.cleared, .exQuizBtn.cleared { background-color: #28a745; cursor: default; }
+.quizBtn.cleared:hover, .exQuizBtn.cleared:hover { background-color: #1e7e34; }
 
 /* スマホ対応 */
 @media (max-width: 768px) {

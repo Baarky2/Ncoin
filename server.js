@@ -60,38 +60,45 @@ function safeSaveDB(db) {
   }, 100); // 100ms後に書き込み
 }
 
+// 共通定数
+const NORMAL_QUIZZES = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"];
+const EX_QUIZZES = ["ex01", "ex02", "ex03", "ex04", "ex05", "ex06", "ex07"];
+
 // クイズ権限チェック
 app.get("/quiz-rights/:nickname", (req, res) => {
   const db = loadDB();
   const user = db[req.params.nickname];
   if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
 
-  const quizRights = user.quizRights || {};
+  user.history = user.history || [];
+  user.quizRights = user.quizRights || {};
 
-  // ノーマルクイズの正解済みID
-  const normalQuizzes = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"];
+  // ノーマルクイズの正解済みID（履歴ベース）
   const clearedNormal = user.history
     .map(h => h.questId)
-    .filter(id => id && normalQuizzes.includes(id));
+    .filter(id => id && NORMAL_QUIZZES.includes(id));
 
-  // すべて正解済みかチェック
-  const allNormalCleared = normalQuizzes.every(q => clearedNormal.includes(q));
+  // すべて正解済みかチェック（履歴にあるものが「回答済み」）
+  const allNormalCleared = NORMAL_QUIZZES.every(q => clearedNormal.includes(q));
 
   let exQuizRights = {};
   if (allNormalCleared) {
-    // EXクイズの権利を付与（既にクリア済みか、全クリア済みなら解放）
-    const exIds = ["ex01", "ex02", "ex03"];
-    exIds.forEach((id, i) => {
-      const prevCleared = i === 0 || user.history.some(h => h.questId === exIds[i - 1]);
-      if (!user.quizRights[id] && prevCleared) {
-        exQuizRights[id] = true; // 解放
-      } else if (user.quizRights[id]) {
-        exQuizRights[id] = true; // すでにクリア済み
-      }
+    // ノーマルをすべて回答済みなら EX を解放（仕様に合わせて一括解放）
+    EX_QUIZZES.forEach(id => {
+      // フロント側では exQuizRights[id] が true なら表示・押下可能にする
+      exQuizRights[id] = true;
     });
+  } else {
+    // まだノーマル全クリでない → EX は非表示/非解放
+    exQuizRights = {};
   }
 
-  res.json({ quizRights, exQuizRights });
+  // ただし既に user.quizRights に設定がある場合はそれも反映（過去に個別に付与されていれば true）
+  EX_QUIZZES.forEach(id => {
+    if (user.quizRights[id]) exQuizRights[id] = true;
+  });
+
+  res.json({ quizRights: user.quizRights, exQuizRights });
 });
 
 
@@ -146,24 +153,20 @@ app.post("/claim-quiz", (req, res) => {
   if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
 
   db[nickname].quizRights = db[nickname].quizRights || {};
+
   if (db[nickname].quizRights[quizId]) {
-    return res.json({ message: `すでに ${quizId} の解答権を持っています` });
+    return res.json({ message: `すでに ${quizId} の解答権を持っています`, exUnlocked: false });
   }
 
-  // 解答権を付与
+  // 解答権を付与（QRでの取得は「回答権付与」のみ）
   db[nickname].quizRights[quizId] = true;
 
-  // ── ノーマルクイズ全クリア判定 ──
-  const normalQuizzes = ["quiz01","quiz02","quiz03","quiz04","quiz05"];
-  const allNormalCleared = normalQuizzes.every(q => db[nickname].quizRights[q]);
-
-  // 保存
   safeSaveDB(db);
 
-  // レスポンス
+  // ※ EX の解放は「実際に回答して /quest で履歴が入ったとき」に判定する仕様に変更。
   res.json({
     message: `${quizId} の解答権を取得しました！`,
-    exUnlocked: allNormalCleared // trueならフロントでアラート出せる
+    exUnlocked: false
   });
 });
 
@@ -219,7 +222,6 @@ app.post("/login", (req, res) => {
     db[finalNickname].quizRights = db[finalNickname].quizRights || {};
   }
 
-
   safeSaveDB(db);
 
   res.json({
@@ -243,7 +245,7 @@ app.get("/balance/:nickname", (req, res) => {
   });
 });
 
-// ======== 🧩 クイズ報酬 ========
+// ======== 🧩 クイズ報酬（各 quiz ページへのアクセス制御） ========
 app.get("/quiz01.html", (req, res) => {
   const nickname = req.query.nickname;
   const db = loadDB();
@@ -264,7 +266,6 @@ app.get("/quiz02.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public/quiz02.html"));
 });
 
-// quiz03〜quiz05も同様
 app.get("/quiz03.html", (req, res) => {
   const nickname = req.query.nickname;
   const db = loadDB();
@@ -295,6 +296,11 @@ app.get("/quiz05.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public/quiz05.html"));
 });
 
+// EX_quiz pages (例: public/EX_quiz01.html ... EX_quiz07.html)
+// ルーティングが必要ならここに同様の GET ハンドラを追加してください。
+// 例:
+// app.get("/EX_quiz01.html", (req, res) => { ... });
+
 // ======== 🎯 クエスト報酬 ========
 app.post("/quest", async (req, res) => {
   const {
@@ -309,10 +315,14 @@ app.post("/quest", async (req, res) => {
   if (!user) return res.status(404).json({
     error: "ユーザーが存在しません"
   });
-  if (questId && user.history.some(h => h.questId === questId))
-    return res.json({
-      message: "すでにクリア済み"
-    });
+
+  user.history = user.history || [];
+  user.quizRights = user.quizRights || {};
+
+  // すでに同じ questId をクリア済みなら何もしない
+  if (questId && user.history.some(h => h.questId === questId)) {
+    return res.json({ message: "すでにクリア済み" });
+  }
 
   const reward = Number(amount);
   if (reward <= 0) return res.status(400).json({
@@ -325,25 +335,52 @@ app.post("/quest", async (req, res) => {
     type: type || "クエスト報酬",
     questId,
     amount: reward,
-    date: new Date(),
+    date: new Date().toISOString(),
   });
 
   // 🔹 解答権の管理（quizRights）
-  user.quizRights = user.quizRights || {};
   if (questId && questId.startsWith("quiz")) {
+    user.quizRights[questId] = true;
+  } else if (questId && questId.startsWith("ex")) {
+    // EX は既にクライアントが持っている回答権でページに入っているはずなので、
+    // ここでは履歴としてクリア済み扱いにするだけで OK（権利は残す／または必要なら消す）
     user.quizRights[questId] = true;
   }
 
-  // 🔹 ノーマル問題全クリア判定
-  const normalQuizzes = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"];
-  const allNormalCleared = normalQuizzes.every(q => user.quizRights[q]);
+  // 🔹 ノーマル問題全クリ（履歴ベース）判定
+  const clearedNormal = user.history.map(h => h.questId).filter(id => id && NORMAL_QUIZZES.includes(id));
+  const allNormalCleared = NORMAL_QUIZZES.every(q => clearedNormal.includes(q));
 
-  // 🔹 EX問題解放ロジック
+  // 🔹 EX問題解放ロジック（ノーマルを全て回答済みになったときに一括解放）
   let exUnlocked = false;
-  if (allNormalCleared && !user.quizRights["ex01"]) {
-    user.quizRights["ex01"] = true;
-    exUnlocked = true;
-    console.log(`🎉 EX01 unlocked for ${nickname}`);
+  if (allNormalCleared) {
+    EX_QUIZZES.forEach(id => {
+      if (!user.quizRights[id]) {
+        user.quizRights[id] = true;
+        exUnlocked = true;
+      }
+    });
+  }
+
+  // 🔹 EX個別クリア時の「全EXクリアボーナス」(重複防止)
+  if (questId && questId.startsWith("ex")) {
+    // EX が全部クリア済みかをチェック（履歴ベース）
+    const clearedEx = user.history.map(h => h.questId).filter(id => id && EX_QUIZZES.includes(id));
+    const allExCleared = EX_QUIZZES.every(id => clearedEx.includes(id));
+    if (allExCleared) {
+      // bonus_ex_all をまだもらっていなければ付与
+      const alreadyGotExBonus = user.history.some(h => h.questId === "bonus_ex_all");
+      if (!alreadyGotExBonus) {
+        const bonusAmount = 400;
+        user.balance += bonusAmount;
+        user.history.push({
+          type: "全EXクリアボーナス",
+          questId: "bonus_ex_all",
+          amount: bonusAmount,
+          date: new Date().toISOString(),
+        });
+      }
+    }
   }
 
   safeSaveDB(db);
@@ -453,6 +490,7 @@ app.get("/history/:nickname", (req, res) => {
   if (!user) return res.status(404).json({
     error: "ユーザーが存在しません"
   });
+  user.history = user.history || [];
   res.json(user.history);
 });
 
