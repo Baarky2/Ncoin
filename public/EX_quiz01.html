@@ -1,3 +1,4 @@
+public/EX_quiz01.html url=https://github.com/Baarky2/Ncoin/blob/main/public/EX_quiz01.html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -12,6 +13,8 @@
     button:hover { background: #0056b3; }
     #puzzleClearBtn { background: #28a745; display: none; }
     #puzzleClearBtn:hover { background: #218838; }
+    #backToListBtn { position: fixed; bottom: 20px; left: 20px; background: #6c757d; color: white; border: none; border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer; z-index: 1000; }
+    #backToListBtn:hover { background: #5a6268; }
   </style>
 </head>
 <body>
@@ -27,102 +30,17 @@
   <div id="resultMsg" style="margin-top:10px;font-weight:bold;"></div>
   <button id="puzzleClearBtn">謎をクリア！50コイン獲得</button>
 
+  <script src="/ex-common.js"></script>
   <script>
-    // ✅ 設定
-    const correctAnswer = ["ふるーつ", "フルーツ"];
-    const questId = "ex01";
-    const rewardAmount = 50;
-    const allQuests = ["ex01","ex02","ex03","ex04","ex05","ex06","ex07","ex08"]; // 全EXクイズ
-
-    const nickname = localStorage.getItem("nickname");
-    if (!nickname) {
-      alert("⚠️ ログイン情報がありません。トップからログインしてください。");
-      location.href = "/index.html";
-    }
-
-    const resultMsg = document.getElementById("resultMsg");
-    const checkBtn = document.getElementById("checkAnswerBtn");
-    const clearBtn = document.getElementById("puzzleClearBtn");
-    const answerInput = document.getElementById("answerInput");
-
-    // ✅ クリア済みチェック
-    async function checkCleared() {
-      try {
-        const res = await fetch(`/history/${nickname}`);
-        const history = await res.json();
-        const cleared = history.some(h => h.questId === questId);
-        if (cleared) {
-          resultMsg.textContent = "この謎はすでにクリア済みです ✅";
-          resultMsg.style.color = "gray";
-          checkBtn.disabled = true;
-          answerInput.disabled = true;
-        }
-      } catch (err) { console.error(err); }
-    }
-
-    checkCleared();
-
-    // ✅ 解答判定
-    checkBtn.addEventListener("click", () => {
-      const ans = answerInput.value.trim();
-      if (!ans) {
-        resultMsg.textContent = "解答を入力してください。";
-        resultMsg.style.color = "gray";
-        return;
-      }
-      if (correctAnswer.includes(ans)) {
-        resultMsg.textContent = "正解です！🎉";
-        resultMsg.style.color = "green";
-        clearBtn.style.display = "inline-block";
-      } else {
-        resultMsg.textContent = "不正解です。もう一度考えてみましょう。";
-        resultMsg.style.color = "red";
-      }
-    });
-
-    // ✅ クリア処理
-    clearBtn.addEventListener("click", async () => {
-      try {
-        const res = await fetch("/quest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nickname, amount: rewardAmount, type: "EX謎解き", questId })
-        });
-        const data = await res.json();
-        if (data.error) { alert("コイン付与に失敗: " + data.error); return; }
-        alert(`EX謎解きクリア！${rewardAmount}コイン獲得しました✨`);
-
-        // 🔹 全問クリアボーナス
-        const histRes = await fetch(`/history/${nickname}`);
-        const history = await histRes.json();
-        const clearedIds = history.map(h => h.questId);
-        const allCleared = allQuests.every(q => clearedIds.includes(q));
-        const alreadyGotBonus = history.some(h => h.questId === "bonus_ex_all");
-
-        if (allCleared && !alreadyGotBonus) {
-          const bonusRes = await fetch("/quest", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nickname, amount: 400, type: "EX全問クリアボーナス", questId: "bonus_ex_all" })
-          });
-          const bonusData = await bonusRes.json();
-          if (!bonusData.error) {
-            alert("🎊 EX全問クリアボーナス達成！400コイン獲得しました！ 🎉");
-          }
-        }
-
-        location.href = "/dashboard.html";
-      } catch (err) {
-        alert("サーバーエラー: " + err);
-      }
+    // このページ固有の設定
+    EX.setupQuizPage({
+      correctAnswers: ["ふるーつ", "フルーツ"],
+      questId: "ex01",
+      rewardAmount: 50
     });
   </script>
 
   <button id="backToListBtn">← クイズ一覧に戻る</button>
-  <style>
-    #backToListBtn { position: fixed; bottom: 20px; left: 20px; background: #6c757d; color: white; border: none; border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: background 0.2s ease; }
-    #backToListBtn:hover { background: #5a6268; }
-  </style>
   <script>
     document.getElementById("backToListBtn").addEventListener("click", () => { location.href = "/dashboard.html"; });
   </script>
