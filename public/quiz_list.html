@@ -80,22 +80,22 @@
   <div class="container">
 <div class="quiz-list" id="normalQuizzes">
   <h2>ノーマルクイズ</h2>
-  <button class="quizBtn" data-id="quiz01">Quiz01</button>
-  <button class="quizBtn" data-id="quiz02">Quiz02</button>
-  <button class="quizBtn" data-id="quiz03">Quiz03</button>
-  <button class="quizBtn" data-id="quiz04">Quiz04</button>
-  <button class="quizBtn" data-id="quiz05">Quiz05</button>
+  <button class="quizBtn" data-id="quiz01"></button>
+  <button class="quizBtn" data-id="quiz02"></button>
+  <button class="quizBtn" data-id="quiz03"></button>
+  <button class="quizBtn" data-id="quiz04"></button>
+  <button class="quizBtn" data-id="quiz05"></button>
 </div>
 
 <div class="quiz-list" id="exQuizzes" style="display:none;">
   <h2>EXクイズ</h2>
-<button class="exQuizBtn" data-id="ex01">EX01</button>
-<button class="exQuizBtn" data-id="ex02">EX02</button>
-<button class="exQuizBtn" data-id="ex03">EX03</button>
-<button class="exQuizBtn" data-id="ex04">EX04</button>
-<button class="exQuizBtn" data-id="ex05">EX05</button>
-<button class="exQuizBtn" data-id="ex06">EX06</button>
-<button class="exQuizBtn" data-id="ex07">EX07</button>
+<button class="exQuizBtn" data-id="ex01"></button>
+<button class="exQuizBtn" data-id="ex02"></button>
+<button class="exQuizBtn" data-id="ex03"></button>
+<button class="exQuizBtn" data-id="ex04"></button>
+<button class="exQuizBtn" data-id="ex05"></button>
+<button class="exQuizBtn" data-id="ex06"></button>
+<button class="exQuizBtn" data-id="ex07"></button>
 
 </div>
 
@@ -309,7 +309,6 @@ document.querySelectorAll(".exQuizBtn").forEach(btn => {
   }
 }
 
-// EXクイズ解放 & 表示処理（1つずつ解放）
 async function loadExQuizzes() {
   try {
     // 履歴からクリア済みを取得
@@ -322,35 +321,37 @@ async function loadExQuizzes() {
 
     const exList = ["ex01", "ex02", "ex03", "ex04", "ex05", "ex06", "ex07"];
 
-    let unlocked = true; // EX01 は常に解放扱い（最初は true）
+    let unlocked = true; // EX01 は常に解放扱い
 
     for (let i = 0; i < exList.length; i++) {
       const id = exList[i];
-
-      // ★ unlocked が false → この EX は表示しない
-      if (!unlocked) break;
 
       // ボタン生成
       const btn = document.createElement("button");
       btn.className = "exQuizBtn";
       btn.dataset.id = id;
-      btn.textContent = id.toUpperCase();
 
-      // クリア済みなら緑＋チェック
       if (clearedIds.includes(id)) {
+        // ✅ クリア済み → 緑＋報酬受け取り済みに
         btn.classList.add("cleared");
-        btn.textContent = id.toUpperCase();
+        btn.textContent = "報酬受け取り済み";
         btn.disabled = true;
 
-        // ★ 次の EX の解放許可
+        // 次のボタンは解放可能
         unlocked = true;
-      } else {
-        // まだ解いていない場合
+      } else if (unlocked) {
+        // 未解答かつ解放済み → 青
         btn.classList.add("available");
+        btn.textContent = id.toUpperCase();
         btn.disabled = false;
 
-        // ★ 次の EX は解放しない
+        // 次のボタンはまだ解放しない
         unlocked = false;
+      } else {
+        // 未解答かつ未解放 → 灰色
+        btn.classList.add("locked");
+        btn.textContent = id.toUpperCase();
+        btn.disabled = true;
       }
 
       btn.addEventListener("click", () => goQuiz(id));
@@ -361,6 +362,7 @@ async function loadExQuizzes() {
     console.error("EXロードエラー:", err);
   }
 }
+
 
 loadQuizButtons();
 checkExUnlocked();
