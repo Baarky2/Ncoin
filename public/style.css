@@ -40,24 +40,7 @@ body {
 }
 
 /* クイズボタン共通 */
-.quiz-btn,
-.quizBtn,
-.exQuizBtn {
-  width: 100%;
-  max-width: 300px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 1rem;
-  transition: background 0.2s ease;
-  box-sizing: border-box;
-  margin: 5px 0;
-  text-align: center;
-  white-space: nowrap;
-  background-color: #007bff;
-  cursor: pointer;
-}
+
 
 /* 状態別カラー */
 .quiz-btn.locked,
@@ -191,6 +174,7 @@ input {
 }
 
 .ranking h2 { margin-bottom: 10px; }
+
 .ranking ol { padding-left: 20px; }
 .ranking li { margin: 5px 0; }
 
@@ -201,16 +185,67 @@ input {
   cursor: pointer;
   font-size: 0.9rem;
 }
-
-/* EXクイズ縦並び */
-#exQuizzes {
+/* EXクイズ専用の中央寄せ（必要なら） */
+.ex-quiz-container {
   display: flex;
-  flex-direction: column !important; /* 上下に縦並び */
-  align-items: center !important;   /* 真ん中寄せ */
-  justify-content: center !important; /* 上下中央配置 */
-  gap: 12px;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* EXクイズの選択肢ボタンが左寄りになる場合の修正 */
+.ex-choices {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  margin: 0 auto; /* 中央揃え */
+}
+
+.ex-choices button {
+  width: 80%;
+  max-width: 400px;
+  margin: 10px 0;
+  text-align: center;
+}
+.quiz-btn,
+.quizBtn{
+  width: 100%;
+  max-width: 300px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  transition: background 0.2s ease;
+  box-sizing: border-box;
+  margin: 5px 0;
+  text-align: center;
+  white-space: nowrap;
+  background-color: #007bff;
+  cursor: pointer;
+
+}
+.exQuizBtn {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  transition: background 0.2s ease;
+  box-sizing: border-box;
+  margin: 5px 0;
+  text-align: center;
+  white-space: nowrap;
+  background-color: #007bff;
+  cursor: pointer;
+
+  display: flex;
+  flex-direction: column; 
+  flex-wrap: wrap;
+
+  justify-content: center; /* ← 追加 */
+  align-items: center;     /* ← 追加 */
 }
 
 /* =========================================
@@ -271,21 +306,11 @@ input {
 
   #adminToggle { font-size: 0.8rem; }
 
-  #exQuizzes {
-    width: 100%;
-    align-items: center;
-  }
 
-  #exQuizzes .exQuizBtn {
-    width: 90%;
-    max-width: 300px;
-  }
 
-  .quizBtn,
-  .exQuizBtn {
-    font-size: 1.2rem;
-    padding: 14px 28px;
-  }
+
+
+
 }
 
 /* =========================================
@@ -301,18 +326,4 @@ input {
   .quiz-buttons { flex-direction: column; }
 
   .qr-quiz-section h2 { font-size: 1.2rem; }
-}
-/* === EXQuiz 修正: 上下に縦一列(Y軸方向)に並べる === */
-#exQuizzes {
-  display: flex;
-  flex-direction: column !important; /* 上下に縦並び */
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.exQuizBtn {
-  width: 100% !important;
-  max-width: 300px !important;
-  display: block;
 }
