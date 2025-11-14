@@ -73,17 +73,11 @@
     #backToDashboardBtn:hover {
       background: #5a6268;
     }
-    
   </style>
 </head>
 
 <body>
   <div class="container">
-<div class="quiz-list ex-center" id="exQuizzes">
-
-  <h2>EXクイズ</h2>
-</div>
-
 <div class="quiz-list" id="normalQuizzes">
   <h2>ノーマルクイズ</h2>
   <button class="quizBtn" data-id="quiz01"></button>
@@ -93,6 +87,7 @@
   <button class="quizBtn" data-id="quiz05"></button>
 </div>
 
+<div class="quiz-list" id="exQuizzes"></div>
  
 
 
@@ -232,7 +227,7 @@ async function checkExUnlocked() {
   const normalQuizIds = Array.from(document.querySelectorAll(".quizBtn")).map(b => b.dataset.id);
   const allCleared = normalQuizIds.every(id => clearedIds.includes(id));
 
-container.style.display = anyAvailable ? "block" : "none";
+  document.getElementById("exQuizzes").style.display = allCleared ? "block" : "none";
 
     if (allCleared) {
       document.getElementById("exQuizzes").style.display = "block";
@@ -309,7 +304,7 @@ document.querySelectorAll(".exQuizBtn").forEach(btn => {
 async function loadExQuizzes(clearedIds) {
   const exList = ["ex01","ex02","ex03","ex04","ex05","ex06","ex07"];
   const container = document.getElementById("exQuizzes");
-container.innerHTML = "";
+  container.innerHTML = "<h2>EXクイズ</h2>";
 
   let unlockedNext = true; // 1問ずつ解放用フラグ
 
@@ -357,6 +352,9 @@ async function initQuizPage() {
 // ページ読み込み時に実行
 initQuizPage();
 
-</script>
+
+
+
+  </script>
 </body>
 </html>
