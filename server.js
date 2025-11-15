@@ -561,8 +561,12 @@ app.post("/admin/delete", checkAdmin, async (req, res) => {
 
 // ======== ⚡ Socket.io ========
 io.on("connection", (socket) => {
-  console.log("✅ クライアント接続");
+  if (process.env.NODE_ENV !== "production") {
+    console.log("✅ クライアント接続");
+  }
 });
+app.get("/health", (_, res) => res.send("OK"));
+
 
 // ======== サーバ起動 ========
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
