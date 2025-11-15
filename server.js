@@ -26,7 +26,8 @@ app.use(express.json());
 app.use(express.urlencoded({
   extended: true
 }));
-app.use(express.static("public"));
+const path = require("path");
+app.use(express.static(path.join(__dirname, "public")));
 
 // ======== 🧠 データ管理 ========
 const DB_FILE = "users.json";
