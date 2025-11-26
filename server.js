@@ -218,7 +218,7 @@ app.post("/login", (req, res) => {
   // ユーザー登録
   if (!db[finalNickname]) {
     db[finalNickname] = {
-      balance: isAdmin ? 10000 : 100,
+      balance: isAdmin ? 10000 : 0,
       history: [],
       isAdmin,
       quizRights: {} // ← デフォルトで解答権なし
