@@ -12,7 +12,7 @@ const socketIo = require("socket.io");
 require("dotenv").config();
 const app = express();
 const path = require("path");
-
+const bcrypt = require("bcrypt");
 app.use(express.static("public")); // OK
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -130,7 +130,7 @@ function validateNickname(name) {
 
 
 // ======== 🌐 ページルート ========
-app.get("/", (_, res) => res.sendFile(path.join(__dirname, "public/index.html")));
+app.get("/", (_, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/dashboard", (_, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
 app.get("/pay.html", (_, res) => res.sendFile(path.join(__dirname, "public/pay.html")));
 app.get("/public/ex_quiz01.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz01.png")));
@@ -179,66 +179,106 @@ app.post("/claim-quiz", (req, res) => {
 
 
 // 👤 ログイン
-app.post("/login", (req, res) => {
-  let {
-    nickname,
-    adminCode,
-    accessCode
-  } = req.body;
-
-  // アクセスコードチェック
-  if (accessCode !== process.env.ACCESS_CODE) {
-    return res.json({
-      error: "アクセスコードが無効です"
-    });
-  }
-
-  // 管理者判定
-  const isAdmin = adminCode && adminCode === process.env.ADMIN_CODE;
-
-  // 管理者コードが入力されているのに正しくない場合は拒否
-  if (adminCode && !isAdmin) {
-    return res.json({
-      error: "管理者コードが無効です"
-    });
-  }
-
-  // 管理者は nickname を "admin" 固定
-  const finalNickname = isAdmin ? "admin" : nickname;
-
-  // 一般ユーザーの場合ニックネームの妥当性をチェック
-  if (!isAdmin && !validateNickname(finalNickname)) {
-    return res.json({
-      error: "無効なニックネームです"
-    });
-  }
+app.post("/login", async (req, res) => {
+  let { nickname, password, adminCode } = req.body;
 
   const db = loadDB();
 
-  // ユーザー登録
-  if (!db[finalNickname]) {
-    db[finalNickname] = {
-      balance: isAdmin ? 10000 : 0,
-      history: [],
-      isAdmin,
-      quizRights: {} // ← デフォルトで解答権なし
-    };
-  } else if (isAdmin) {
-    db[finalNickname].isAdmin = true;
-    db[finalNickname].balance = 10000;
-    db[finalNickname].quizRights = db[finalNickname].quizRights || {};
+  // ============================
+  // ① 管理者ログイン
+  // ============================
+  const isAdmin = adminCode && adminCode === process.env.ADMIN_CODE;
+
+  if (adminCode && !isAdmin) {
+    return res.json({ error: "管理者コードが無効です" });
   }
 
-  safeSaveDB(db);
+  if (isAdmin) {
+    nickname = "admin";
 
-  res.json({
+    // 管理者アカウントが存在しなければ作成
+    if (!db[nickname]) {
+      db[nickname] = {
+        isAdmin: true,
+        password: null, // パスワード不要
+        balance: 10000,
+        history: [],
+        quizRights: {}
+      };
+    } else {
+      db[nickname].isAdmin = true;
+      db[nickname].balance = 10000;
+    }
+
+    safeSaveDB(db);
+
+    return res.json({
+      success: true,
+      nickname,
+      isAdmin: true,
+      balance: db[nickname].balance
+    });
+  }
+
+  // ============================
+  // ② 一般ユーザー（パスワード必須）
+  // ============================
+  if (!nickname) return res.json({ error: "ニックネームを入力してください" });
+  if (!password) return res.json({ error: "パスワードを入力してください" });
+
+  // ニックネーム検証（あなたが元々使っていた関数）
+  if (!validateNickname(nickname)) {
+    return res.json({ error: "無効なニックネームです" });
+  }
+
+  // ============================
+  // ③ 新規登録の場合
+  // ============================
+  if (!db[nickname]) {
+    const hashedPass = await bcrypt.hash(password, 10);
+
+    db[nickname] = {
+      password: hashedPass,
+      balance: 0,
+      history: [],
+      isAdmin: false,
+      quizRights: {}
+    };
+
+    safeSaveDB(db);
+
+    return res.json({
+      success: true,
+      nickname,
+      isAdmin: false,
+      balance: db[nickname].balance
+    });
+  }
+
+  // ============================
+  // ④ 既存ユーザー ⇒ パスワード照合
+  // ============================
+  const user = db[nickname];
+
+  if (!user.password) {
+    return res.json({ error: "このユーザーはパスワード未設定です" });
+  }
+
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  if (!passwordMatch) {
+    return res.json({ error: "パスワードが間違っています" });
+  }
+
+  // ============================
+  // ⑤ ログイン成功
+  // ============================
+  return res.json({
     success: true,
-    nickname: finalNickname,
-    isAdmin,
-    balance: db[finalNickname].balance
+    nickname,
+    isAdmin: false,
+    balance: user.balance
   });
 });
-
 
 // ======== 💰 残高取得 ========
 app.get("/balance/:nickname", (req, res) => {

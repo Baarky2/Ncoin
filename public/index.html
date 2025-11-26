@@ -13,17 +13,21 @@
 
     <input type="text" id="nickname" placeholder="ニックネーム" />
 
+    <!-- 管理者切り替え -->
     <div style="margin-top:10px;">
-      <span id="adminToggle">
-        管理者の方は
-      </span>
+      <span id="adminToggle">管理者の方は</span>
     </div>
 
+    <!-- 管理者コード欄 -->
     <div id="adminCodeDiv" style="display:none; margin-top:10px;">
       <input type="password" id="adminCode" placeholder="管理者コード" />
     </div>
 
-    <input id="accessCode" placeholder="アクセスコード" />
+    <!-- パスワード欄（ユーザー用） -->
+    <div id="passwordDiv" style="margin-top:10px;">
+      <input type="password" id="password" placeholder="パスワード" />
+    </div>
+
     <div style="margin-top:10px;">
       <button id="loginBtn">ログイン</button>
     </div>
@@ -32,50 +36,60 @@
 <script>
 const adminToggle = document.getElementById("adminToggle");
 const adminCodeDiv = document.getElementById("adminCodeDiv");
+const passwordDiv = document.getElementById("passwordDiv");
 const loginBtn = document.getElementById("loginBtn");
 const nicknameInput = document.getElementById("nickname");
 
-// 管理者コード欄の表示切替
+// 管理者コード欄表示切り替え
 adminToggle.addEventListener("click", () => {
   if (adminCodeDiv.style.display === "none") {
-    adminCodeDiv.style.display = "block";
+    adminCodeDiv.style.display = "block";  // 管理者モードON
+    passwordDiv.style.display = "none";    // パスワード不要
     nicknameInput.value = "";
-    nicknameInput.disabled = true; // ユーザー名を入力不可
+    nicknameInput.disabled = true;         // 管理者はニックネーム固定
   } else {
-    adminCodeDiv.style.display = "none";
-    nicknameInput.disabled = false; // ユーザー名入力可能
+    adminCodeDiv.style.display = "none";   // 管理者モードOFF
+    passwordDiv.style.display = "block";   // パスワード必要
+    nicknameInput.disabled = false;
   }
 });
 
 loginBtn.addEventListener("click", async () => {
   let nickname = nicknameInput.value.trim();
-  const adminCode = adminCodeDiv.style.display === "block" ? document.getElementById("adminCode").value : "";
-  const accessCode = document.getElementById("accessCode").value.trim();
+  const adminCode = adminCodeDiv.style.display === "block"
+    ? document.getElementById("adminCode").value
+    : "";
 
-  // アクセスコード必須
-  if (!accessCode) return alert("アクセスコードを入力してください");
+const passwordInput = document.getElementById("password");
+const password = passwordInput ? passwordInput.value.trim() : "";
 
-  // 管理者ならnicknameは "admin" 固定
+  // 管理者なら nickname を固定
   if (adminCode) nickname = "admin";
 
   if (!nickname) return alert("ニックネームを入力してください");
+
+  // 管理者以外はパスワード必須
+  if (!adminCode && !password) {
+    return alert("パスワードを入力してください");
+  }
 
   try {
     // 既存ユーザー確認（管理者以外）
     if (!adminCode) {
       const resCheck = await fetch(`/user-exists/${encodeURIComponent(nickname)}`);
       const { exists } = await resCheck.json();
-      if (exists) {
-        const proceed = confirm("すでに使われていますがこのユーザー名を使いますか？");
-        if (!proceed) return;
+
+      if (!exists) {
+        const ok = confirm("ユーザーが存在しません。新規登録しますか？");
+        if (!ok) return;
       }
     }
 
-    // ログイン処理
+    // ログイン or 新規登録
     const res = await fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname, adminCode, accessCode })
+      body: JSON.stringify({ nickname, password, adminCode })
     });
     const data = await res.json();
 
@@ -83,7 +97,6 @@ loginBtn.addEventListener("click", async () => {
 
     localStorage.setItem("nickname", data.nickname);
     localStorage.setItem("isAdmin", data.isAdmin);
-    if (data.isAdmin) localStorage.setItem("adminCode", adminCode);
 
     location.href = "/dashboard";
   } catch (e) {
