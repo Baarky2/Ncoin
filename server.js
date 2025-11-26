@@ -5,14 +5,15 @@
 
 const express = require("express");
 const fs = require("fs");
-const path = require("path");
 const QRCode = require("qrcode");
 const cors = require("cors");
 const http = require("http");
 const socketIo = require("socket.io");
 require("dotenv").config();
-
 const app = express();
+const path = require("path");
+
+app.use(express.static("public")); // OK
 const server = http.createServer(app);
 const io = socketIo(server);
 
