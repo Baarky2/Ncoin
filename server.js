@@ -133,7 +133,13 @@ function validateNickname(name) {
 app.get("/", (_, res) => res.sendFile(path.join(__dirname, "public/index.html")));
 app.get("/dashboard", (_, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
 app.get("/pay.html", (_, res) => res.sendFile(path.join(__dirname, "public/pay.html")));
-
+app.get("/public/ex_quiz01.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz01.png")));
+app.get("/public/ex_quiz02.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz02.png")));
+app.get("/public/ex_quiz03.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz03.png")));
+app.get("/public/ex_quiz04.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz04.png")));
+app.get("/public/ex_quiz05.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz05.png")));
+app.get("/public/ex_quiz06.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz06.png")));
+app.get("/public/ex_quiz07.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz07.png")));
 // 🔐 認証
 app.post("/auth", (req, res) => {
   const {
