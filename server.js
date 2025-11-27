@@ -1,10 +1,17 @@
 /**
- * 🚀 Improved Ncoin Server
- * 高速キャッシュ + 安全書き込み + 管理者権限対応版
+ * 🚀 Ncoin Server — PostgreSQL版
+ * 高速キャッシュ + 安全書き込み → Postgres に一本化した実装
+ *
+ * 環境変数:
+ * - DATABASE_URL
+ * - ACCESS_CODE
+ * - ADMIN_CODE
+ * - PORT (任意)
+ *
+ * 必要なテーブルは schema.sql を参照してください。
  */
 
 const express = require("express");
-const fs = require("fs");
 const QRCode = require("qrcode");
 const cors = require("cors");
 const http = require("http");
@@ -13,128 +20,40 @@ require("dotenv").config();
 const app = express();
 const path = require("path");
 const bcrypt = require("bcrypt");
-app.use(express.static("public")); // OK
-const server = http.createServer(app);
-const io = socketIo(server);
+const { Pool } = require("pg");
 
 const PORT = process.env.PORT || 3000;
 const ACCESS_CODE = process.env.ACCESS_CODE;
-const ADMIN_CODE = process.env.ADMIN_CODE || "Z4kL8PqR9"; // 管理者コード
-const { Pool } = require("pg");
+const ADMIN_CODE = process.env.ADMIN_CODE || "Z4kL8PqR9";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
-// Middleware
+
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({
-  extended: true
-}));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ======== 🧠 データ管理 ========
-const DB_FILE = "users.json";
-let dbCache = {};
-let dirty = false;
-let saveTimer = null;
-
-// DB読み込み
-function loadDB() {
-  if (Object.keys(dbCache).length) return dbCache;
-  try {
-    dbCache = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-  } catch {
-    dbCache = {};
-  }
-  return dbCache;
-}
-// ======== 📝 安全保存関数 ========
-function safeSaveDB(db) {
-  dbCache = db;
-  dirty = true;
-
-  // 保存の間隔をあける（高速連続書き込み防止）
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    fs.writeFile(DB_FILE, JSON.stringify(dbCache, null, 2), (err) => {
-      if (err) console.error("DB保存失敗:", err);
-      else console.log("✅ DB保存完了");
-      dirty = false;
-    });
-  }, 100); // 100ms後に書き込み
-}
+const server = http.createServer(app);
+const io = socketIo(server);
 
 // 共通定数
 const NORMAL_QUIZZES = ["quiz01", "quiz02", "quiz03", "quiz04", "quiz05"];
 const EX_QUIZZES = ["ex01", "ex02", "ex03", "ex04", "ex05", "ex06", "ex07"];
 
-// クイズ権限チェック
-app.get("/quiz-rights/:nickname", (req, res) => {
-  const db = loadDB();
-  const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({ error: "ユーザーが存在しません" });
-
-  user.history = user.history || [];
-  user.quizRights = user.quizRights || {};
-
-  // ノーマルクイズの正解済みID（履歴ベース）
-  const clearedNormal = user.history
-    .map(h => h.questId)
-    .filter(id => id && NORMAL_QUIZZES.includes(id));
-
-  // すべて正解済みかチェック（履歴にあるものが「回答済み」）
-  const allNormalCleared = NORMAL_QUIZZES.every(q => clearedNormal.includes(q));
-
-  let exQuizRights = {};
-  if (allNormalCleared) {
-    // ノーマルをすべて回答済みなら EX を解放（仕様に合わせて一括解放）
-    EX_QUIZZES.forEach(id => {
-      // フロント側では exQuizRights[id] が true なら表示・押下可能にする
-      exQuizRights[id] = true;
-    });
-  } else {
-    // まだノーマル全クリでない → EX は非表示/非解放
-    exQuizRights = {};
-  }
-
-  // ただし既に user.quizRights に設定がある場合はそれも反映（過去に個別に付与されていれば true）
-  EX_QUIZZES.forEach(id => {
-    if (user.quizRights[id]) exQuizRights[id] = true;
-  });
-
-  res.json({ quizRights: user.quizRights, exQuizRights });
-});
-
-
-// 終了時に強制保存
-process.on("SIGTERM", () => {
-  if (dirty) fs.writeFileSync(DB_FILE, JSON.stringify(dbCache, null, 2));
-  console.log("✅ 最終データ保存完了");
-  process.exit(0);
-});
-
-// 初期化（必要なら自動生成）
-/*function initUsers() {
-  const db = loadDB();
-  for (let i = 0; i < 50; i++) {
-    const name = `user${i}`;
-    if (!db[name]) db[name] = { balance: 100, history: [], isAdmin: false };
-  }
-  safeSaveDB(db);
-  console.log("✅ 初期ユーザー登録完了");
-}
-initUsers();*/
-
-// ======== 🧾 共通関数 ========
+// ======== ユーティリティ ========
 function validateNickname(name) {
-  // 全角文字（日本語）・英数字・アンダースコア・ハイフンを許可
   return typeof name === "string" && /^[\p{L}\p{N}_-]{1,20}$/u.test(name);
 }
 
+async function userExists(nickname) {
+  const r = await pool.query("SELECT 1 FROM users WHERE nickname = $1 LIMIT 1", [nickname]);
+  return r.rowCount > 0;
+}
 
-// ======== 🌐 ページルート ========
+// ======== ルート ========
 app.get("/", (_, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/dashboard", (_, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
 app.get("/pay.html", (_, res) => res.sendFile(path.join(__dirname, "public/pay.html")));
@@ -145,274 +64,248 @@ app.get("/public/ex_quiz04.png", (_, res) => res.sendFile(path.join(__dirname, "
 app.get("/public/ex_quiz05.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz05.png")));
 app.get("/public/ex_quiz06.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz06.png")));
 app.get("/public/ex_quiz07.png", (_, res) => res.sendFile(path.join(__dirname, "public/EX_quiz07.png")));
-// 🔐 認証
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+// ======== 認証ページ（旧） ========
 app.post("/auth", (req, res) => {
-  const {
-    code
-  } = req.body;
-  if (code === process.env.ACCESS_CODE) {
+  const { code } = req.body;
+  if (code === ACCESS_CODE) {
     res.redirect("/index.html");
   } else {
     res.send("<h2>パスコードが違います。<a href='/'>戻る</a></h2>");
   }
 });
 
-// QRコード読み取り用エンドポイント（固定URL）
-// ======== QR読み取りで解答権付与 ========
-app.post("/claim-quiz", (req, res) => {
-  const { nickname, quizId } = req.body;
-  const db = loadDB();
-  if (!db[nickname]) return res.status(404).json({ error: "ユーザーが存在しません" });
+// ======== クイズ権限チェック（Postgres版） ========
+app.get("/quiz-rights/:nickname", async (req, res) => {
+  const nickname = req.params.nickname;
+  try {
+    const userR = await pool.query("SELECT nickname FROM users WHERE nickname = $1", [nickname]);
+    if (userR.rowCount === 0) return res.status(404).json({ error: "ユーザーが存在しません" });
 
-  db[nickname].quizRights = db[nickname].quizRights || {};
+    // 現状付与されている quiz rights を取得
+    const qr = await pool.query("SELECT quest_id FROM quiz_rights WHERE nickname = $1", [nickname]);
+    const quizRightsArr = qr.rows.map(r => r.quest_id);
 
-  if (db[nickname].quizRights[quizId]) {
-    return res.json({ message: `すでに ${quizId} の解答権を持っています`, exUnlocked: false });
+    // 履歴からノーマルクリア状況を取得
+    const histR = await pool.query(
+      "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2::text[])",
+      [nickname, NORMAL_QUIZZES]
+    );
+    const clearedNormalIds = histR.rows.map(r => r.quest_id);
+    const allNormalCleared = NORMAL_QUIZZES.every(id => clearedNormalIds.includes(id));
+
+    // ex 解放情報を返す（フロント用途）
+    const exQuizRights = {};
+    if (allNormalCleared) {
+      EX_QUIZZES.forEach(id => exQuizRights[id] = true);
+    }
+    // 既に個別に権利があれば反映
+    quizRightsArr.forEach(id => {
+      if (EX_QUIZZES.includes(id)) exQuizRights[id] = true;
+    });
+
+    res.json({
+      quizRights: quizRightsArr, // 既に付与済みのリスト
+      exQuizRights
+    });
+  } catch (err) {
+    console.error("quiz-rights error:", err);
+    res.status(500).json({ error: "database error" });
   }
-
-  // 解答権を付与（QRでの取得は「回答権付与」のみ）
-  db[nickname].quizRights[quizId] = true;
-
-  safeSaveDB(db);
-
-  // ※ EX の解放は「実際に回答して /quest で履歴が入ったとき」に判定する仕様に変更。
-  res.json({
-    message: `${quizId} の解答権を取得しました！`,
-    exUnlocked: false
-  });
 });
 
+// ======== QR読み取りで解答権付与（Postgres） ========
+app.post("/claim-quiz", async (req, res) => {
+  const { nickname, quizId } = req.body;
+  if (!nickname || !quizId) return res.status(400).json({ error: "不足情報" });
 
-// 👤 ログイン
+  try {
+    const exists = await userExists(nickname);
+    if (!exists) return res.status(404).json({ error: "ユーザーが存在しません" });
+
+    await pool.query(
+      `INSERT INTO quiz_rights (nickname, quest_id)
+       VALUES ($1, $2)
+       ON CONFLICT (nickname, quest_id) DO NOTHING`,
+      [nickname, quizId]
+    );
+
+    res.json({
+      message: `${quizId} の解答権を取得しました！`,
+      exUnlocked: false
+    });
+  } catch (err) {
+    console.error("claim-quiz error:", err);
+    res.status(500).json({ error: "database error" });
+  }
+});
+
+// ======== ログイン / 新規登録（Postgres） ========
 app.post("/login", async (req, res) => {
   let { nickname, password, adminCode } = req.body;
 
-  const db = loadDB();
-
-  // ============================
-  // ① 管理者ログイン
-  // ============================
-  const isAdmin = adminCode && adminCode === process.env.ADMIN_CODE;
-
-  if (adminCode && !isAdmin) {
-    return res.json({ error: "管理者コードが無効です" });
-  }
-
-  if (isAdmin) {
-    nickname = "admin";
-
-    // 管理者アカウントが存在しなければ作成
-    if (!db[nickname]) {
-      db[nickname] = {
-        isAdmin: true,
-        password: null, // パスワード不要
-        balance: 10000,
-        history: [],
-        quizRights: {}
-      };
-    } else {
-      db[nickname].isAdmin = true;
-      db[nickname].balance = 10000;
+  try {
+    // 管理者ログイン
+    const isAdmin = adminCode && adminCode === ADMIN_CODE;
+    if (adminCode && !isAdmin) {
+      return res.json({ error: "管理者コードが無効です" });
     }
 
-    safeSaveDB(db);
+    if (isAdmin) {
+      nickname = "admin";
+      const existing = await pool.query("SELECT nickname FROM users WHERE nickname = $1", [nickname]);
+      if (existing.rowCount === 0) {
+        await pool.query(
+          `INSERT INTO users (nickname, password, balance, is_admin)
+           VALUES ($1, NULL, 10000, true)`,
+          [nickname]
+        );
+      } else {
+        await pool.query(
+          `UPDATE users SET is_admin = true, balance = 10000 WHERE nickname = $1`,
+          [nickname]
+        );
+      }
+
+      return res.json({
+        success: true,
+        nickname,
+        isAdmin: true,
+        balance: 10000
+      });
+    }
+
+    // 一般ユーザー
+    if (!nickname) return res.json({ error: "ニックネームを入力してください" });
+    if (!password) return res.json({ error: "パスワードを入力してください" });
+    if (!validateNickname(nickname)) return res.json({ error: "無効なニックネームです" });
+
+    const r = await pool.query("SELECT nickname, password, balance FROM users WHERE nickname = $1", [nickname]);
+    if (r.rowCount === 0) {
+      // 新規登録
+      const hashedPass = await bcrypt.hash(password, 10);
+      await pool.query(
+        `INSERT INTO users (nickname, password, balance, is_admin)
+         VALUES ($1, $2, 0, false)`,
+        [nickname, hashedPass]
+      );
+
+      return res.json({
+        success: true,
+        nickname,
+        isAdmin: false,
+        balance: 0
+      });
+    }
+
+    const user = r.rows[0];
+    if (!user.password) {
+      return res.json({ error: "このユーザーはパスワード未設定です" });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.json({ error: "パスワードが間違っています" });
 
     return res.json({
       success: true,
       nickname,
-      isAdmin: true,
-      balance: db[nickname].balance
-    });
-  }
-
-  // ============================
-  // ② 一般ユーザー（パスワード必須）
-  // ============================
-  if (!nickname) return res.json({ error: "ニックネームを入力してください" });
-  if (!password) return res.json({ error: "パスワードを入力してください" });
-
-  // ニックネーム検証（あなたが元々使っていた関数）
-  if (!validateNickname(nickname)) {
-    return res.json({ error: "無効なニックネームです" });
-  }
-
-  // ============================
-  // ③ 新規登録の場合
-  // ============================
-  if (!db[nickname]) {
-    const hashedPass = await bcrypt.hash(password, 10);
-
-    db[nickname] = {
-      password: hashedPass,
-      balance: 0,
-      history: [],
       isAdmin: false,
-      quizRights: {}
-    };
-
-    safeSaveDB(db);
-
-    return res.json({
-      success: true,
-      nickname,
-      isAdmin: false,
-      balance: db[nickname].balance
+      balance: user.balance
     });
+
+  } catch (err) {
+    console.error("login error:", err);
+    res.status(500).json({ error: "database error" });
   }
-
-  // ============================
-  // ④ 既存ユーザー ⇒ パスワード照合
-  // ============================
-  const user = db[nickname];
-
-  if (!user.password) {
-    return res.json({ error: "このユーザーはパスワード未設定です" });
-  }
-
-  const passwordMatch = await bcrypt.compare(password, user.password);
-  if (!passwordMatch) {
-    return res.json({ error: "パスワードが間違っています" });
-  }
-
-  // ============================
-  // ⑤ ログイン成功
-  // ============================
-  return res.json({
-    success: true,
-    nickname,
-    isAdmin: false,
-    balance: user.balance
-  });
 });
 
-// ======== 💰 残高取得 ========
-app.get("/balance/:nickname", (req, res) => {
-  const db = loadDB();
-  const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({
-    error: "ユーザーが存在しません"
-  });
-  res.json({
-    balance: user.balance
-  });
+// ======== 残高取得 ========
+app.get("/balance/:nickname", async (req, res) => {
+  try {
+    const nickname = req.params.nickname;
+    const r = await pool.query("SELECT balance FROM users WHERE nickname = $1", [nickname]);
+    if (r.rowCount === 0) return res.status(404).json({ error: "ユーザーが存在しません" });
+    res.json({ balance: r.rows[0].balance });
+  } catch (err) {
+    console.error("balance error:", err);
+    res.status(500).json({ error: "database error" });
+  }
 });
 
-// ======== 🧩 クイズ報酬（各 quiz ページへのアクセス制御） ========
-app.get("/quiz01.html", (req, res) => {
+// ======== クイズページアクセス制御（例: quiz01..quiz05） ========
+async function serveQuizPage(req, res, quizId, pageFile) {
   const nickname = req.query.nickname;
-  const db = loadDB();
-  const user = db[nickname];
-  if (!user || !user.quizRights.quiz01) {
-    return res.send(`<script>alert("⚠️ このクイズの回答権がありません");window.location.href="/dashboard";</script>`);
+  if (!nickname) return res.send(`<script>alert("⚠️ ニックネームが指定されていません");window.location.href="/dashboard";</script>`);
+
+  try {
+    const r = await pool.query(
+      "SELECT 1 FROM quiz_rights WHERE nickname = $1 AND quest_id = $2 LIMIT 1",
+      [nickname, quizId]
+    );
+    if (r.rowCount === 0) {
+      return res.send(`<script>alert("⚠️ このクイズの回答権がありません");window.location.href="/dashboard";</script>`);
+    }
+    res.sendFile(path.join(__dirname, "public", pageFile));
+  } catch (err) {
+    console.error("serveQuizPage error:", err);
+    res.status(500).send("server error");
   }
-  res.sendFile(path.join(__dirname, "public/quiz01.html"));
-});
+}
 
-app.get("/quiz02.html", (req, res) => {
-  const nickname = req.query.nickname;
-  const db = loadDB();
-  const user = db[nickname];
-  if (!user || !user.quizRights.quiz02) {
-    return res.send(`<script>alert("⚠️ このクイズの回答権がありません");window.location.href="/dashboard";</script>`);
-  }
-  res.sendFile(path.join(__dirname, "public/quiz02.html"));
-});
+app.get("/quiz01.html", (req, res) => serveQuizPage(req, res, "quiz01", "quiz01.html"));
+app.get("/quiz02.html", (req, res) => serveQuizPage(req, res, "quiz02", "quiz02.html"));
+app.get("/quiz03.html", (req, res) => serveQuizPage(req, res, "quiz03", "quiz03.html"));
+app.get("/quiz04.html", (req, res) => serveQuizPage(req, res, "quiz04", "quiz04.html"));
+app.get("/quiz05.html", (req, res) => serveQuizPage(req, res, "quiz05", "quiz05.html"));
+// EX クイズページは必要なら同様に追加してください
 
-app.get("/quiz03.html", (req, res) => {
-  const nickname = req.query.nickname;
-  const db = loadDB();
-  const user = db[nickname];
-  if (!user || !user.quizRights.quiz03) {
-    return res.send(`<script>alert("⚠️ このクイズの回答権がありません");window.location.href="/dashboard";</script>`);
-  }
-  res.sendFile(path.join(__dirname, "public/quiz03.html"));
-});
-
-app.get("/quiz04.html", (req, res) => {
-  const nickname = req.query.nickname;
-  const db = loadDB();
-  const user = db[nickname];
-  if (!user || !user.quizRights.quiz04) {
-    return res.send(`<script>alert("⚠️ このクイズの回答権がありません");window.location.href="/dashboard";</script>`);
-  }
-  res.sendFile(path.join(__dirname, "public/quiz04.html"));
-});
-
-app.get("/quiz05.html", (req, res) => {
-  const nickname = req.query.nickname;
-  const db = loadDB();
-  const user = db[nickname];
-  if (!user || !user.quizRights.quiz05) {
-    return res.send(`<script>alert("⚠️ このクイズの回答権がありません");window.location.href="/dashboard";</script>`);
-  }
-  res.sendFile(path.join(__dirname, "public/quiz05.html"));
-});
-
-// EX_quiz pages (例: public/EX_quiz01.html ... EX_quiz07.html)
-// ルーティングが必要ならここに同様の GET ハンドラを追加してください。
-// 例:
-// app.get("/EX_quiz01.html", (req, res) => { ... });
-
-// ======== 🎯 クエスト報酬 ========
+// ======== クエスト報酬 ========
+// 既存コード基に Postgres トランザクションを使用して安全に処理
 app.post("/quest", async (req, res) => {
+  const client = await pool.connect();
   try {
     const { nickname, questId, amount, type } = req.body;
     const reward = Number(amount);
+    if (!nickname || !questId || !reward) return res.status(400).json({ error: "invalid params" });
 
-    if (!nickname || !questId || !reward) {
-      return res.status(400).json({ error: "invalid params" });
-    }
+    await client.query("BEGIN");
 
-    // --- 1) ユーザー存在確認 ---
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE nickname = $1",
-      [nickname]
-    );
-
-    if (userResult.rows.length === 0) {
+    const userR = await client.query("SELECT * FROM users WHERE nickname = $1 FOR UPDATE", [nickname]);
+    if (userR.rowCount === 0) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ error: "ユーザーが存在しません" });
     }
 
-    const user = userResult.rows[0];
-
-    // --- 2) すでに同じクエストクリア済みか ---
-    const cleared = await pool.query(
-      "SELECT * FROM history WHERE nickname = $1 AND quest_id = $2",
+    const cleared = await client.query(
+      "SELECT 1 FROM history WHERE nickname = $1 AND quest_id = $2 LIMIT 1",
       [nickname, questId]
     );
-
-    if (cleared.rows.length > 0) {
+    if (cleared.rowCount > 0) {
+      await client.query("ROLLBACK");
       return res.json({ message: "すでにクリア済み" });
     }
 
-    // --- 3) コイン付与（ユーザーの残高を更新） ---
-    await pool.query(
-      "UPDATE users SET balance = balance + $1 WHERE nickname = $2",
-      [reward, nickname]
-    );
+    await client.query("UPDATE users SET balance = balance + $1 WHERE nickname = $2", [reward, nickname]);
 
-    // --- 4) 履歴追加 ---
-    await pool.query(
+    await client.query(
       `INSERT INTO history (nickname, quest_id, amount, type)
        VALUES ($1, $2, $3, $4)`,
       [nickname, questId, reward, type || "クエスト報酬"]
     );
 
-    // --- 5) ノーマル全クリ判定（EX開放のため） ---
-    const normalClear = await pool.query(
-      "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2)",
+    // ノーマル全クリ判定
+    const normalClear = await client.query(
+      "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2::text[])",
       [nickname, NORMAL_QUIZZES]
     );
-
-    const allNormalDone = NORMAL_QUIZZES.every(id =>
-      normalClear.rows.some(r => r.quest_id === id)
-    );
+    const clearedNormalIds = normalClear.rows.map(r => r.quest_id);
+    const allNormalDone = NORMAL_QUIZZES.every(id => clearedNormalIds.includes(id));
 
     let exUnlocked = false;
-
     if (allNormalDone) {
-      // EX をすべて quizRights に登録
-      await pool.query(
+      await client.query(
         `INSERT INTO quiz_rights (nickname, quest_id)
          SELECT $1, UNNEST($2::text[])
          ON CONFLICT DO NOTHING`,
@@ -421,32 +314,23 @@ app.post("/quest", async (req, res) => {
       exUnlocked = true;
     }
 
-    // --- 6) EX個別クリア → 全EXクリアボーナス ---
+    // EX個別クリア → 全EXクリアボーナス
     if (questId.startsWith("ex")) {
-      const exClear = await pool.query(
-        "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2)",
+      const exClear = await client.query(
+        "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2::text[])",
         [nickname, EX_QUIZZES]
       );
-
-      const allExDone = EX_QUIZZES.every(id =>
-        exClear.rows.some(r => r.quest_id === id)
-      );
+      const clearedExIds = exClear.rows.map(r => r.quest_id);
+      const allExDone = EX_QUIZZES.every(id => clearedExIds.includes(id));
 
       if (allExDone) {
-        // bonus_ex_all をチェック
-        const bonus = await pool.query(
-          "SELECT * FROM history WHERE nickname = $1 AND quest_id = 'bonus_ex_all'",
+        const bonus = await client.query(
+          "SELECT 1 FROM history WHERE nickname = $1 AND quest_id = 'bonus_ex_all' LIMIT 1",
           [nickname]
         );
-
-        if (bonus.rows.length === 0) {
-          // ボーナス付与
-          await pool.query(
-            "UPDATE users SET balance = balance + 400 WHERE nickname = $1",
-            [nickname]
-          );
-
-          await pool.query(
+        if (bonus.rowCount === 0) {
+          await client.query("UPDATE users SET balance = balance + 400 WHERE nickname = $1", [nickname]);
+          await client.query(
             `INSERT INTO history (nickname, quest_id, amount, type)
              VALUES ($1, 'bonus_ex_all', 400, '全EXクリアボーナス')`,
             [nickname]
@@ -455,100 +339,103 @@ app.post("/quest", async (req, res) => {
       }
     }
 
-    return res.json({
-      ok: true,
-      exUnlocked
-    });
-
+    await client.query("COMMIT");
+    io.emit("update");
+    res.json({ ok: true, exUnlocked });
   } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     console.error("quest error:", err);
+    res.status(500).json({ error: "database error" });
+  } finally {
+    client.release();
+  }
+});
+
+// ======== 送金（Postgres トランザクション） ========
+app.post("/send", async (req, res) => {
+  const { from, to, amount } = req.body;
+  const amt = Number(amount);
+  if (!from || !to || !Number.isFinite(amt) || amt <= 0) return res.status(400).json({ error: "invalid params" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const fromR = await client.query("SELECT balance, is_admin FROM users WHERE nickname = $1 FOR UPDATE", [from]);
+    const toR = await client.query("SELECT balance FROM users WHERE nickname = $1 FOR UPDATE", [to]);
+
+    if (fromR.rowCount === 0 || toR.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "ユーザーが存在しません" });
+    }
+
+    const fromUser = fromR.rows[0];
+    const toUser = toR.rows[0];
+
+    if (!fromUser.is_admin && Number(fromUser.balance) < amt) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "残高不足" });
+    }
+
+    if (!fromUser.is_admin) {
+      await client.query("UPDATE users SET balance = balance - $1 WHERE nickname = $2", [amt, from]);
+    }
+    await client.query("UPDATE users SET balance = balance + $1 WHERE nickname = $2", [amt, to]);
+
+    const date = new Date().toISOString();
+    await client.query(
+      `INSERT INTO history (nickname, quest_id, amount, type, created_at)
+       VALUES ($1, NULL, $2, '送金', $3)`,
+      [from, -amt, date]
+    );
+    await client.query(
+      `INSERT INTO history (nickname, quest_id, amount, type, created_at)
+       VALUES ($1, NULL, $2, '受取', $3)`,
+      [to, amt, date]
+    );
+
+    await client.query("COMMIT");
+    io.emit("update");
+
+    const newFromBalR = await pool.query("SELECT balance FROM users WHERE nickname = $1", [from]);
+    res.json({ success: true, balance: newFromBalR.rows[0].balance });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("send error:", err);
+    res.status(500).json({ error: "database error" });
+  } finally {
+    client.release();
+  }
+});
+
+// ======== QRコード生成 ========
+app.get("/generate-qr/:nickname/:quizId", async (req, res) => {
+  const { nickname, quizId } = req.params;
+  if (!nickname || !quizId) return res.status(400).json({ error: "不足情報" });
+
+  try {
+    const base = process.env.BASE_URL || `https://ncoin-barky.onrender.com`;
+    const qrUrl = `${base}/claim-quiz.html?nickname=${encodeURIComponent(nickname)}&quizId=${encodeURIComponent(quizId)}`;
+    const qr = await QRCode.toDataURL(qrUrl);
+    res.json({ qr });
+  } catch (err) {
+    console.error("generate-qr error:", err);
+    res.status(500).json({ error: "QR生成失敗", detail: err.message });
+  }
+});
+
+// ======== ランキング ========
+app.get("/ranking", async (req, res) => {
+  try {
+    const r = await pool.query("SELECT nickname, balance FROM users WHERE NOT is_admin ORDER BY balance DESC");
+    res.json(r.rows);
+  } catch (err) {
+    console.error("ranking error:", err);
     res.status(500).json({ error: "database error" });
   }
 });
 
-// ======== 🔄 送金 ========
-app.post("/send", (req, res) => {
-  const {
-    from,
-    to,
-    amount
-  } = req.body;
-  const db = loadDB();
-
-  if (!db[from] || !db[to]) return res.status(400).json({
-    error: "ユーザーが存在しません"
-  });
-  if (!db[from].isAdmin && db[from].balance < amount) return res.status(400).json({
-    error: "残高不足"
-  });
-
-  const amt = Number(amount);
-  const date = new Date().toISOString();
-
-  if (!db[from].isAdmin) db[from].balance -= amt;
-  db[to].balance += amt;
-
-  db[from].history.push({
-    type: "送金",
-    to,
-    amount: amt,
-    date
-  });
-  db[to].history.push({
-    type: "受取",
-    from,
-    amount: amt,
-    date
-  });
-
-  safeSaveDB(db);
-  io.emit("update");
-  res.json({
-    success: true,
-    balance: db[from].balance
-  });
-});
-
-// ======== 🧾 QRコード生成 ========
-app.get("/generate-qr/:nickname/:quizId", async (req, res) => {
-  const {
-    nickname,
-    quizId
-  } = req.params;
-  if (!nickname || !quizId) return res.status(400).json({
-    error: "不足情報"
-  });
-
-  try {
-    const qrUrl = `https://ncoin-barky.onrender.com/claim-quiz.html?nickname=${encodeURIComponent(nickname)}&quizId=${encodeURIComponent(quizId)}`;
-    const qr = await QRCode.toDataURL(qrUrl);
-    res.json({
-      qr
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: "QR生成失敗",
-      detail: err.message
-    });
-  }
-});
-
-
-// ======== 🏆 ランキング ========
-app.get("/ranking", (req, res) => {
-  const db = loadDB();
-  const ranking = Object.entries(db)
-    .filter(([_, data]) => !data.isAdmin)
-    .sort((a, b) => b[1].balance - a[1].balance)
-    .map(([name, data]) => ({
-      nickname: name,
-      balance: data.balance
-    }));
-
-  res.json(ranking);
-});
-
-// ======== 📜 履歴 ========
+// ======== 履歴 ========
 app.get("/history/:nickname", async (req, res) => {
   try {
     const r = await pool.query(
@@ -565,79 +452,80 @@ app.get("/history/:nickname", async (req, res) => {
   }
 });
 
-// ======== 🧭 管理者用API ========
-
-// 管理者認証
+// ======== 管理者認証ミドルウェア ========
 function checkAdmin(req, res, next) {
-  const {
-    adminCode
-  } = req.body;
-  if (adminCode !== process.env.ADMIN_CODE) {
-    return res.status(403).json({
-      error: "管理者コードが無効です"
-    });
+  const { adminCode } = req.body;
+  if (adminCode !== ADMIN_CODE) {
+    return res.status(403).json({ error: "管理者コードが無効です" });
   }
   next();
 }
 
-// 🪙 全員にコイン配布
+// ======== 管理者: 全員にコイン配布 ========
 app.post("/admin/distribute", checkAdmin, async (req, res) => {
-  const {
-    amount
-  } = req.body;
-  const reward = Number(amount);
-  if (!Number.isFinite(reward) || reward <= 0) {
-    return res.status(400).json({
-      error: "無効な金額です"
-    });
+  const reward = Number(req.body.amount);
+  if (!Number.isFinite(reward) || reward <= 0) return res.status(400).json({ error: "無効な金額です" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    await client.query("UPDATE users SET balance = balance + $1 WHERE NOT is_admin", [reward]);
+
+    await client.query(
+      `INSERT INTO history (nickname, quest_id, amount, type)
+       SELECT nickname, 'distribute', $1, '全体配布' FROM users WHERE NOT is_admin`,
+      [reward]
+    );
+
+    await client.query("COMMIT");
+    io.emit("update");
+    res.json({ message: `全ユーザーに ${reward} コイン配布完了` });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("admin distribute error:", err);
+    res.status(500).json({ error: "database error" });
+  } finally {
+    client.release();
   }
-
-  const db = loadDB();
-  Object.keys(db).forEach(name => {
-    if (!db[name].isAdmin) {
-      db[name].balance += reward;
-      db[name].history.push({
-        type: "全体配布",
-        amount: reward,
-        date: new Date().toISOString()
-      });
-    }
-  });
-
-  safeSaveDB(db);
-  io.emit("update");
-  res.json({
-    message: `全ユーザーに ${reward} コイン配布完了`
-  });
 });
 
-// ❌ 特定ユーザー削除
+// ======== 管理者: ユーザー削除 ========
 app.post("/admin/delete", checkAdmin, async (req, res) => {
-  const {
-    target
-  } = req.body;
-  const db = loadDB();
+  const { target } = req.body;
+  if (!target) return res.status(400).json({ error: "target required" });
 
-  if (!db[target]) return res.status(404).json({
-    error: "指定されたユーザーが存在しません"
-  });
-
-  delete db[target];
-  safeSaveDB(db);
-  io.emit("update");
-  res.json({
-    message: `ユーザー '${target}' を削除しました`
-  });
+  try {
+    const r = await pool.query("DELETE FROM users WHERE nickname = $1", [target]);
+    if (r.rowCount === 0) return res.status(404).json({ error: "指定されたユーザーが存在しません" });
+    io.emit("update");
+    res.json({ message: `ユーザー '${target}' を削除しました` });
+  } catch (err) {
+    console.error("admin delete error:", err);
+    res.status(500).json({ error: "database error" });
+  }
 });
 
-// ======== ⚡ Socket.io ========
+// ======== ユーザー存在チェック（Postgres） ========
+app.get("/user-exists/:nickname", async (req, res) => {
+  try {
+    const nickname = req.params.nickname;
+    const result = await pool.query("SELECT 1 FROM users WHERE nickname = $1 LIMIT 1", [nickname]);
+    res.json({ exists: result.rowCount > 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "database error" });
+  }
+});
+
+// ======== Socket.io ========
 io.on("connection", (socket) => {
   if (process.env.NODE_ENV !== "production") {
     console.log("✅ クライアント接続");
   }
 });
+
+// ======== ヘルスチェック & サーバ起動 ========
 app.get("/health", (_, res) => res.send("OK"));
 
-
-// ======== サーバ起動 ========
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -1,1 +1,9 @@
-{}
+{
+  "バーキー": {
+    "password": "$2b$10$Ra3Gn7pHGC5xp5alBJBDAOta0Iff2mk2900ES7RnE5i0EGA.AO7k2",
+    "balance": 0,
+    "history": [],
+    "isAdmin": false,
+    "quizRights": {}
+  }
+}
