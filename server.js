@@ -20,7 +20,12 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 const ACCESS_CODE = process.env.ACCESS_CODE;
 const ADMIN_CODE = process.env.ADMIN_CODE || "Z4kL8PqR9"; // 管理者コード
+const { Pool } = require("pg");
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -350,102 +355,115 @@ app.get("/quiz05.html", (req, res) => {
 
 // ======== 🎯 クエスト報酬 ========
 app.post("/quest", async (req, res) => {
-  const {
-    nickname,
-    amount,
-    type,
-    questId
-  } = req.body;
-  const db = loadDB();
+  try {
+    const { nickname, questId, amount, type } = req.body;
+    const reward = Number(amount);
 
-  const user = db[nickname];
-  if (!user) return res.status(404).json({
-    error: "ユーザーが存在しません"
-  });
+    if (!nickname || !questId || !reward) {
+      return res.status(400).json({ error: "invalid params" });
+    }
 
-  user.history = user.history || [];
-  user.quizRights = user.quizRights || {};
+    // --- 1) ユーザー存在確認 ---
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE nickname = $1",
+      [nickname]
+    );
 
-  // すでに同じ questId をクリア済みなら何もしない
-  if (questId && user.history.some(h => h.questId === questId)) {
-    return res.json({ message: "すでにクリア済み" });
-  }
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: "ユーザーが存在しません" });
+    }
 
-  const reward = Number(amount);
-  if (reward <= 0) return res.status(400).json({
-    error: "無効な報酬額"
-  });
+    const user = userResult.rows[0];
 
-  // 🔹 コイン加算と履歴追加
-  user.balance += reward;
-  user.history.push({
-    type: type || "クエスト報酬",
-    questId,
-    amount: reward,
-    date: new Date().toISOString(),
-  });
+    // --- 2) すでに同じクエストクリア済みか ---
+    const cleared = await pool.query(
+      "SELECT * FROM history WHERE nickname = $1 AND quest_id = $2",
+      [nickname, questId]
+    );
 
-  // 🔹 解答権の管理（quizRights）
-  if (questId && questId.startsWith("quiz")) {
-    user.quizRights[questId] = true;
-  } else if (questId && questId.startsWith("ex")) {
-    // EX は既にクライアントが持っている回答権でページに入っているはずなので、
-    // ここでは履歴としてクリア済み扱いにするだけで OK（権利は残す／または必要なら消す）
-    user.quizRights[questId] = true;
-  }
+    if (cleared.rows.length > 0) {
+      return res.json({ message: "すでにクリア済み" });
+    }
 
-  // 🔹 ノーマル問題全クリ（履歴ベース）判定
-  const clearedNormal = user.history.map(h => h.questId).filter(id => id && NORMAL_QUIZZES.includes(id));
-  const allNormalCleared = NORMAL_QUIZZES.every(q => clearedNormal.includes(q));
+    // --- 3) コイン付与（ユーザーの残高を更新） ---
+    await pool.query(
+      "UPDATE users SET balance = balance + $1 WHERE nickname = $2",
+      [reward, nickname]
+    );
 
-  // 🔹 EX問題解放ロジック（ノーマルを全て回答済みになったときに一括解放）
-  let exUnlocked = false;
-  if (allNormalCleared) {
-    EX_QUIZZES.forEach(id => {
-      if (!user.quizRights[id]) {
-        user.quizRights[id] = true;
-        exUnlocked = true;
-      }
-    });
-  }
+    // --- 4) 履歴追加 ---
+    await pool.query(
+      `INSERT INTO history (nickname, quest_id, amount, type)
+       VALUES ($1, $2, $3, $4)`,
+      [nickname, questId, reward, type || "クエスト報酬"]
+    );
 
-  // 🔹 EX個別クリア時の「全EXクリアボーナス」(重複防止)
-  if (questId && questId.startsWith("ex")) {
-    // EX が全部クリア済みかをチェック（履歴ベース）
-    const clearedEx = user.history.map(h => h.questId).filter(id => id && EX_QUIZZES.includes(id));
-    const allExCleared = EX_QUIZZES.every(id => clearedEx.includes(id));
-    if (allExCleared) {
-      // bonus_ex_all をまだもらっていなければ付与
-      const alreadyGotExBonus = user.history.some(h => h.questId === "bonus_ex_all");
-      if (!alreadyGotExBonus) {
-        const bonusAmount = 400;
-        user.balance += bonusAmount;
-        user.history.push({
-          type: "全EXクリアボーナス",
-          questId: "bonus_ex_all",
-          amount: bonusAmount,
-          date: new Date().toISOString(),
-        });
+    // --- 5) ノーマル全クリ判定（EX開放のため） ---
+    const normalClear = await pool.query(
+      "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2)",
+      [nickname, NORMAL_QUIZZES]
+    );
+
+    const allNormalDone = NORMAL_QUIZZES.every(id =>
+      normalClear.rows.some(r => r.quest_id === id)
+    );
+
+    let exUnlocked = false;
+
+    if (allNormalDone) {
+      // EX をすべて quizRights に登録
+      await pool.query(
+        `INSERT INTO quiz_rights (nickname, quest_id)
+         SELECT $1, UNNEST($2::text[])
+         ON CONFLICT DO NOTHING`,
+        [nickname, EX_QUIZZES]
+      );
+      exUnlocked = true;
+    }
+
+    // --- 6) EX個別クリア → 全EXクリアボーナス ---
+    if (questId.startsWith("ex")) {
+      const exClear = await pool.query(
+        "SELECT quest_id FROM history WHERE nickname = $1 AND quest_id = ANY($2)",
+        [nickname, EX_QUIZZES]
+      );
+
+      const allExDone = EX_QUIZZES.every(id =>
+        exClear.rows.some(r => r.quest_id === id)
+      );
+
+      if (allExDone) {
+        // bonus_ex_all をチェック
+        const bonus = await pool.query(
+          "SELECT * FROM history WHERE nickname = $1 AND quest_id = 'bonus_ex_all'",
+          [nickname]
+        );
+
+        if (bonus.rows.length === 0) {
+          // ボーナス付与
+          await pool.query(
+            "UPDATE users SET balance = balance + 400 WHERE nickname = $1",
+            [nickname]
+          );
+
+          await pool.query(
+            `INSERT INTO history (nickname, quest_id, amount, type)
+             VALUES ($1, 'bonus_ex_all', 400, '全EXクリアボーナス')`,
+            [nickname]
+          );
+        }
       }
     }
+
+    return res.json({
+      ok: true,
+      exUnlocked
+    });
+
+  } catch (err) {
+    console.error("quest error:", err);
+    res.status(500).json({ error: "database error" });
   }
-
-  safeSaveDB(db);
-  io.emit("update");
-
-  res.json({
-    balance: user.balance,
-    exUnlocked,
-  });
-});
-
-// ユーザー存在確認
-app.get("/user-exists/:nickname", (req, res) => {
-  const db = loadDB();
-  const nickname = req.params.nickname;
-  res.json({
-    exists: !!db[nickname]
-  });
 });
 
 // ======== 🔄 送金 ========
@@ -531,14 +549,20 @@ app.get("/ranking", (req, res) => {
 });
 
 // ======== 📜 履歴 ========
-app.get("/history/:nickname", (req, res) => {
-  const db = loadDB();
-  const user = db[req.params.nickname];
-  if (!user) return res.status(404).json({
-    error: "ユーザーが存在しません"
-  });
-  user.history = user.history || [];
-  res.json(user.history);
+app.get("/history/:nickname", async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT quest_id, amount, type, created_at AS date
+       FROM history
+       WHERE nickname = $1
+       ORDER BY created_at ASC`,
+      [req.params.nickname]
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error("history error:", err);
+    res.status(500).json({ error: "database error" });
+  }
 });
 
 // ======== 🧭 管理者用API ========
