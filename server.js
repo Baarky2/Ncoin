@@ -22,7 +22,6 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 
-const PORT = process.env.PORT || 3000;
 const ACCESS_CODE = process.env.ACCESS_CODE;
 const ADMIN_CODE = process.env.ADMIN_CODE || "Z4kL8PqR9";
 
@@ -528,4 +527,12 @@ io.on("connection", (socket) => {
 // ======== ヘルスチェック & サーバ起動 ========
 app.get("/health", (_, res) => res.send("OK"));
 
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+const bindHost = process.env.BIND_HOST || "0.0.0.0";
+const port = process.env.PORT || 3000;
+
+server.listen(port, bindHost, () => {
+  console.log(`🚀 Server running on ${bindHost}:${port}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log("DATABASE_URL:", !!process.env.DATABASE_URL ? "(present)" : "(missing)");
+  }
+});
