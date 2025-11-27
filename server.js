@@ -530,9 +530,21 @@ app.get("/health", (_, res) => res.send("OK"));
 const bindHost = process.env.BIND_HOST || "0.0.0.0";
 const port = process.env.PORT || 3000;
 
-server.listen(port, bindHost, () => {
-  console.log(`🚀 Server running on ${bindHost}:${port}`);
-  if (process.env.NODE_ENV !== "production") {
-    console.log("DATABASE_URL:", !!process.env.DATABASE_URL ? "(present)" : "(missing)");
+(async () => {
+  try {
+    // マイグレーションを実行（schema.sql を適用）
+    const runMigrations = require("./migrate_on_start");
+    await runMigrations();
+  } catch (err) {
+    console.error("Migration failed (continuing startup):", err);
   }
-});
+
+  const bindHost = process.env.BIND_HOST || "0.0.0.0";
+  const port = process.env.PORT || 3000;
+  server.listen(port, bindHost, () => {
+    console.log(`🚀 Server running on ${bindHost}:${port}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("DATABASE_URL:", !!process.env.DATABASE_URL ? "(present)" : "(missing)");
+    }
+  });
+})();
