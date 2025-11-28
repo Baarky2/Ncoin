@@ -523,7 +523,30 @@ io.on("connection", (socket) => {
     console.log("✅ クライアント接続");
   }
 });
+// === ADD THIS to server.js (after pool, app definitions and where routes are defined) ===
+// 管理者コードで保護された簡易 DB ビュー（閲覧のみ）
+app.get("/admin/view-db", async (req, res) => {
+  try {
+    const adminCode = req.query.adminCode || req.headers["x-admin-code"];
+    if (!adminCode || adminCode !== process.env.ADMIN_CODE) {
+      return res.status(403).json({ error: "管理者コードが無効です" });
+    }
 
+    // users / history / quiz_rights の抜粋を取得
+    const usersR = await pool.query("SELECT nickname, balance, is_admin FROM users ORDER BY balance DESC LIMIT 200");
+    const historyR = await pool.query("SELECT nickname, quest_id, amount, type, created_at FROM history ORDER BY created_at DESC LIMIT 200");
+    const rightsR = await pool.query("SELECT nickname, quest_id FROM quiz_rights ORDER BY nickname LIMIT 500");
+
+    res.json({
+      users: usersR.rows,
+      history: historyR.rows,
+      quiz_rights: rightsR.rows
+    });
+  } catch (err) {
+    console.error("admin/view-db error:", err);
+    res.status(500).json({ error: "database error" });
+  }
+});
 // ======== ヘルスチェック & サーバ起動 ========
 app.get("/health", (_, res) => res.send("OK"));
 
