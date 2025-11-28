@@ -527,10 +527,10 @@ io.on("connection", (socket) => {
 // 管理者コードで保護された簡易 DB ビュー（閲覧のみ）
 app.get("/admin/view-db", async (req, res) => {
   try {
-    const adminCode = req.query.adminCode || req.headers["x-admin-code"];
-    if (!adminCode || adminCode !== process.env.ADMIN_CODE) {
-      return res.status(403).json({ error: "管理者コードが無効です" });
-    }
+const adminCode = req.query.adminCode || req.headers["x-admin-code"];
+if (!adminCode || adminCode !== ADMIN_CODE) {
+  return res.status(403).json({ error: "管理者コードが無効です" });
+}
 
     // users / history / quiz_rights の抜粋を取得
     const usersR = await pool.query("SELECT nickname, balance, is_admin FROM users ORDER BY balance DESC LIMIT 200");
@@ -550,14 +550,12 @@ app.get("/admin/view-db", async (req, res) => {
 // ======== ヘルスチェック & サーバ起動 ========
 app.get("/health", (_, res) => res.send("OK"));
 
-const bindHost = process.env.BIND_HOST || "0.0.0.0";
-const port = process.env.PORT || 3000;
 
 (async () => {
   try {
     // マイグレーションを実行（schema.sql を適用）
-    const runMigrations = require("./migrate_on_start");
-    await runMigrations();
+const runMigrations = require("./init_db");
+await runMigrations();
   } catch (err) {
     console.error("Migration failed (continuing startup):", err);
   }
